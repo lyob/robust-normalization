@@ -17,4 +17,4 @@ PARAMETERS=$(sed "${FILE_LINE}q;d" ${PARAMETER_FILE})
 echo ${PARAMETERS}
 
 
-bash regularize.sh ${PARAMETERS}
+bash normalize.sh ${PARAMETERS}

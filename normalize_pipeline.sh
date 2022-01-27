@@ -1,7 +1,7 @@
 #!/bin/bash
 PARAM_FILE="mnist_param.txt"
 
-SAVE_FOLDER="/om2/user/hangle/resNet"
+SAVE_FOLDER="./resNet"
 MODEL_NAME=("standard") #mode of the model, can be "neural_noise", "standard" or "gaussian"
 SEEDS=("17")
 MODES=("val") #mode can be 'train', 'val', 'extract', 'mft', 'pairwise', 'meanvar'
@@ -44,7 +44,7 @@ while read line; do
         if [ "$(expr ${LINE_COUNT} % 100)" = "0" ]
         then
                 echo "New Array For Parameters from ${START_INDEX} to ${LINE_COUNT}"
-                sbatch --array=1-100 --mem 16G -p normal regularize.sbatch ${ARRAY_INDEX} ${PARAM_FILE}
+                sbatch --array=1-100 --mem 16G -p normal normalize.sbatch ${ARRAY_INDEX} ${PARAM_FILE}
                 START_INDEX=$(expr ${LINE_COUNT} + 1)
                 ARRAY_INDEX=$(expr ${ARRAY_INDEX} + 1)
         fi
@@ -56,6 +56,6 @@ if [ "${LINE_COUNT}" -ge "${START_INDEX}" ]
 then
         DIFF=$(expr ${LINE_COUNT} - ${START_INDEX} + 1)
         echo "New Array For Parameters from ${START_INDEX} to ${LINE_COUNT}"
-        sbatch --array=1-${DIFF} --mem 16G -p normal regularize.sbatch ${ARRAY_INDEX} ${PARAM_FILE}
+        sbatch --array=1-${DIFF} --mem 16G -p normal normalize.sbatch ${ARRAY_INDEX} ${PARAM_FILE}
 fi
 

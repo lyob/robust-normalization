@@ -14,9 +14,10 @@ from art.attacks.evasion import ProjectedGradientDescent, FastGradientMethod
 from art.estimators.classification import PyTorchClassifier, EnsembleClassifier
 from art.utils import load_mnist
 
-folder_path = '/om2/user/hangle/resNet'
+folder_path = './resNet'
 os.chdir(folder_path)
 
+# this is the local response norm that is implemented by Hang
 class LRN(nn.Module):
     def __init__(self, channel_size=1, spatial_size=1, alpha=1.0, beta=0.75, across_channel_spatial=True):
         super(LRN, self).__init__()
@@ -55,19 +56,21 @@ class Net(nn.Module):
         self.conv_2 = nn.Conv2d(in_channels= in_channels, out_channels=20, kernel_size=5, stride=1)
         self.fc_1 = nn.Linear(in_features=500, out_features=10)
         self.relu = nn.ReLU()
+
         self.bn1 = nn.BatchNorm2d(in_channels)
         self.bn2 = nn.BatchNorm2d(20)
         self.ln1 = nn.LayerNorm([in_channels, 14, 14])
         self.ln2 = nn.LayerNorm([20, 10, 10])
-
         self.in1 = nn.InstanceNorm2d(in_channels, affine=True)
         self.in2 = nn.InstanceNorm2d(20, affine=True)
         self.gn1 = nn.GroupNorm(4, in_channels)
         self.gn2 = nn.GroupNorm(4, 20)
+
         self.lrn = nn.LocalResponseNorm(5, alpha=0.001)
         self.lrn_channel = nn.LocalResponseNorm(5, alpha=0.001)
         self.lrn_spatial = LRN(spatial_size=3, across_channel_spatial=False)
         self.lrn_both = LRN(spatial_size=3, channel_size=5, across_channel_spatial=True)
+
         self.norm_dict1 = {'nn': nn.Identity(),'bn': self.bn1, 'ln': self.ln1, 
                            'in': self.in1, 'gn': self.gn1, 'lrns': self.lrn_spatial,
                            'lrnc': self.lrn_channel, 'lrnb': self.lrn_both}
@@ -111,8 +114,7 @@ def calculate_norm(model):
     return norm_dict
 
 def main(save_folder, model_name, seed, lr, wd, mode, eps, normalize):
-    print('Save folder: {}, model_name: {}, seed: {}, mode: {}, lr: {}, wd: {}, normalize: {}'.format(
-    save_folder, model_name, seed, mode, lr, wd, normalize), flush=True)
+    print(f'Save folder: {save_folder}, model_name: {model_name}, seed: {seed}, mode: {mode}, lr: {lr}, wd: {wd}, normalize: {normalize}', flush=True)
     seed_everything(seed)
     #load and process data
     (x_train, y_train), (x_test, y_test), min_pixel_value, max_pixel_value = load_mnist()
@@ -148,10 +150,11 @@ def main(save_folder, model_name, seed, lr, wd, mode, eps, normalize):
         predictions = classifier.predict(x_test[:n_images])
         accuracy = np.sum(np.argmax(predictions, axis=1) == np.argmax(y_test[:n_images], axis=1)) / len(y_test[:n_images])
         print("Accuracy on benign test examples: {}%".format(accuracy * 100))
+
         save_path = os.path.join(save_folder, 'trained_models', model_name)
         if not os.path.exists(save_path):
             os.makedirs(save_path, exist_ok=True)
-        save_name = os.path.join(save_path, model_name + '-lr_' + str(lr) + '-wd_' + str(wd) + '-seed_' + str(seed) + '-normalize_' + normalize + '.pth')
+        save_name = os.path.join(save_path, f'{model_name}-lr_{str(lr)}-wd_{str(wd)}-seed_{str(seed)}-normalize_{normalize}.pth')
         torch.save(classifier.model.state_dict(),save_name)
         record = {}
         record['accuracy'] = accuracy
@@ -163,7 +166,7 @@ def main(save_folder, model_name, seed, lr, wd, mode, eps, normalize):
     if mode == 'val':
         eps = [float(i) for i in eps]
         save_path = os.path.join(save_folder, 'trained_models', model_name)
-        save_name = os.path.join(save_path, model_name + '-lr_' + str(lr) + '-wd_' + str(wd) + '-seed_' + str(seed) + '-normalize_' + normalize + '.pth')
+        save_name = os.path.join(save_path, f'{model_name}-lr_{str(lr)}-wd_{str(wd)}-seed_{str(seed)}-normalize_{normalize}.pth')
         model.load_state_dict(torch.load(save_name))
         model.eval()
         

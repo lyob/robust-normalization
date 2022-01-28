@@ -14,7 +14,7 @@ from art.attacks.evasion import ProjectedGradientDescent, FastGradientMethod
 from art.estimators.classification import PyTorchClassifier, EnsembleClassifier
 from art.utils import load_mnist
 
-folder_path = './resNet'
+folder_path = '../resNet'
 os.chdir(folder_path)
 
 # this is the local response norm that is implemented by Hang

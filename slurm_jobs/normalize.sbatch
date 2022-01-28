@@ -1,10 +1,14 @@
 #!/bin/bash
-#
-#SBATCH -n 1 # one core
-#SBATCH -N 1 # one node
-#SBATCH -t 5000
+#SBATCH --cpus-per-task=1 # one core
+#SBATCH --nodes=1 # one node
+#SBATCH --ntasks-per-node=1 # one task per node
+#SBATCH --time=5000
 #SBATCH --mem=16G
-#SBATCH --gres=gpu:1 --constraint=high-capacity
+#SBATCH --job-name=normalize
+#SBATCH --mail-type=END
+#SBATCH --mail-use=bl3021@nyu.edu
+#SBATCH --output=slurm_%j.out
+#SBATCH --gres=gpu:v100:1
 
 ARRAY_ID=$1
 PARAMETER_FILE=$2
@@ -17,3 +21,6 @@ PARAMETERS=$(sed "${FILE_LINE}q;d" ${PARAMETER_FILE})
 echo ${PARAMETERS}
 
 bash normalize.sh ${PARAMETERS}
+
+
+

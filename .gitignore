@@ -1,8 +1,12 @@
 # local stuff
 .vscode
 .DS_Store
-resNet/
-slurm_jobs/mnist_param.txt
+
+# unwanted files
+results/
+slurm_jobs/*/mnist_param.txt
+slurm_jobs/*/errors/
+slurm_jobs/*/outputs/
 
 
 # Byte-compiled / optimized / DLL files

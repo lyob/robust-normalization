@@ -10,13 +10,9 @@ NORMALIZE=$7
 EP=$8
 
 module purge;
-module load cuda/11.3.1;
-module load anaconda3/2020.07;
-source /share/apps/anaconda3/2020.07/etc/profile.d/conda.sh;
-
+bash /share/apps/anaconda3/2020.07/etc/profile.d/conda.sh;
 cd /scratch/bl3021/research/sy-lab/;
 conda activate ./penv;
-export PATH=./penv/bin:$PATH;
 
 cd robust-normalization/code/
 
@@ -29,3 +25,4 @@ python3 mnist_normalize.py \
 	--mode ${MODE} \
 	--eps ${EP} \
 	--normalize ${NORMALIZE} \
+

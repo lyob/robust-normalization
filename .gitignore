@@ -3,7 +3,7 @@
 .DS_Store
 
 # unwanted files
-results/
+#results/
 slurm_jobs/*/mnist_param.txt
 slurm_jobs/*/errors/
 #slurm_jobs/*/outputs/

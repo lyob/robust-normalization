@@ -1,8 +1,0 @@
-Line 1
-/mnt/home/blyo1/ceph/syLab/robust-normalization/results/ standard 17 val 0.01 0.0005 lrnb 1.0
-we are running!
-Save folder: /mnt/home/blyo1/ceph/syLab/robust-normalization/results/mnist_regularize, model_name: standard, seed: 17, mode: val, lr: 0.01, wd: 0.0005, normalize: lrnb
-Accuracy on benign test examples: 98.58%
-Attack Strength:  1.0
-Accuracy on adversarial test examples: 0.0
-{'clean': 0.9858, 'perturbed': array([0.])}

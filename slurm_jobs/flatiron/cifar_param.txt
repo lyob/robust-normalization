@@ -1,0 +1,8 @@
+/mnt/home/blyo1/ceph/syLab/robust-normalization/results/ standard 17 train 0.01 0.0005 nn 1.0
+/mnt/home/blyo1/ceph/syLab/robust-normalization/results/ standard 17 train 0.01 0.0005 bn 1.0
+/mnt/home/blyo1/ceph/syLab/robust-normalization/results/ standard 17 train 0.01 0.0005 ln 1.0
+/mnt/home/blyo1/ceph/syLab/robust-normalization/results/ standard 17 train 0.01 0.0005 in 1.0
+/mnt/home/blyo1/ceph/syLab/robust-normalization/results/ standard 17 train 0.01 0.0005 gn 1.0
+/mnt/home/blyo1/ceph/syLab/robust-normalization/results/ standard 17 train 0.01 0.0005 lrnc 1.0
+/mnt/home/blyo1/ceph/syLab/robust-normalization/results/ standard 17 train 0.01 0.0005 lrns 1.0
+/mnt/home/blyo1/ceph/syLab/robust-normalization/results/ standard 17 train 0.01 0.0005 lrnb 1.0

@@ -178,7 +178,7 @@ def main(save_folder, model_name, seed, mode='train', normalize='nn', weight_dec
         
         if mode == 'val':
             # to speed things up a bit let's just do evaluation on 1000 images. Final analysis ideally on full test set.
-            n_images = 10000
+            n_images = 1000
             predictions = classifier.predict(x_test[:n_images])
             accuracy = np.sum(np.argmax(predictions, axis=1) == np.argmax(y_test[:n_images], axis=1)) / len(y_test[:n_images])
             print("Accuracy on benign test examples: {}%".format(accuracy * 100))

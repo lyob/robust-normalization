@@ -1,6 +1,7 @@
 # local stuff
 .vscode
 .DS_Store
+*.swp
 
 # unwanted files
 #results/

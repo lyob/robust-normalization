@@ -8,11 +8,11 @@ MODES=("train") #mode can be 'train', 'val', 'extract', 'mft', 'pairwise', 'mean
 LEARNING_RATES=("0.01")
 #WEIGHT_DECAYS=("0.0005" "0.0001" "0.001")
 WEIGHT_DECAYS=("0.0005")
-NORMALIZES=("nn" "bn" "ln" "in" "gn" "lrnc" "lrns" "lrnb")
-#NORMALIZES=("lrnb")
-EPS=("0.01_0.03_0.05_0.07_0.1_0.15_0.2")
+#NORMALIZES=("nn" "bn" "ln" "in" "gn" "lrnc" "lrns" "lrnb")
+NORMALIZES=("lrnb")
+#EPS=("0.01_0.03_0.05_0.07_0.1_0.15_0.2")
 #EPS=("1.0_2.0_4.0_6.0_8.0")
-#EPS=("1.0")
+EPS=("1.0")
 
 > ${PARAM_FILE}
 for MODEL in ${MODEL_NAME[@]};do

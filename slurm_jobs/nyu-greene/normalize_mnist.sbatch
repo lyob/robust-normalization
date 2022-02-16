@@ -7,7 +7,7 @@
 #SBATCH --job-name=normalize
 #SBATCH --mail-type=END
 #SBATCH --mail-use=bl3021@nyu.edu
-#SBATCH --output=slurm_%j.out
+#SBATCH --output ./outputs/mnist/out.%j.%a.%N.out -e ./errors/mnist/err.%j.%a.%N.err
 #SBATCH --gres=gpu:v100:1
 
 ARRAY_ID=$1

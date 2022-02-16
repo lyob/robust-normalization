@@ -20,4 +20,4 @@ echo "Line ${FILE_LINE}"
 PARAMETERS=$(sed "${FILE_LINE}q;d" ${PARAMETER_FILE})
 echo ${PARAMETERS}
 
-bash normalize.sh ${PARAMETERS}
+bash normalize_mnist.sh ${PARAMETERS}

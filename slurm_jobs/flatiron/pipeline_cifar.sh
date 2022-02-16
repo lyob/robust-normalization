@@ -10,9 +10,9 @@ LEARNING_RATES=("0.01")
 WEIGHT_DECAYS=("0.0005")
 NORMALIZES=("nn" "bn" "ln" "in" "gn" "lrnc" "lrns" "lrnb")
 #NORMALIZES=("lrnb")
-#EPS=("0.01_0.03_0.05_0.07_0.1_0.15_0.2")
+EPS=("0.01_0.03_0.05_0.07_0.1_0.15_0.2")
 #EPS=("1.0_2.0_4.0_6.0_8.0")
-EPS=("1.0")
+#EPS=("1.0")
 
 > ${PARAM_FILE}
 for MODEL in ${MODEL_NAME[@]};do
@@ -45,7 +45,7 @@ while read line; do
         if [ "$(expr ${LINE_COUNT} % 100)" = "0" ]
         then
                 echo "New Array For Parameters from ${START_INDEX} to ${LINE_COUNT}"
-                sbatch --array=1-100 normalize.sbatch ${ARRAY_INDEX} ${PARAM_FILE}
+                sbatch --array=1-100 normalize_cifar.sbatch ${ARRAY_INDEX} ${PARAM_FILE}
                 START_INDEX=$(expr ${LINE_COUNT} + 1)
                 ARRAY_INDEX=$(expr ${ARRAY_INDEX} + 1)
         fi
@@ -61,6 +61,6 @@ then
         DIFF=$(expr ${LINE_COUNT} - ${START_INDEX} + 1)
         echo "New Array For Parameters from ${START_INDEX} to ${LINE_COUNT}"
         #sbatch --array=1-${DIFF} --mem 16G normalize.sbatch ${ARRAY_INDEX} ${PARAM_FILE}
-	sbatch --array=1-${DIFF} normalize.sbatch ${ARRAY_INDEX} ${PARAM_FILE}
+	sbatch --array=1-${DIFF} normalize_cifar.sbatch ${ARRAY_INDEX} ${PARAM_FILE}
 fi
 

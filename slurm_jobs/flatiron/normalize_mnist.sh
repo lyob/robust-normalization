@@ -11,7 +11,7 @@ EP=$8
 
 cd /mnt/home/blyo1/ceph/syLab/robust-normalization/code/;
 source /mnt/home/blyo1/miniconda3/etc/profile.d/conda.sh
-conda activate penv;
+conda activate pyenv36;
 
 python3 mnist_normalize.py \
 	--save_folder ${SAVE_FOLDER} \

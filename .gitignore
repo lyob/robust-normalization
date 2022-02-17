@@ -9,7 +9,6 @@ slurm_jobs/*/mnist_param.txt
 slurm_jobs/*/errors/
 #slurm_jobs/*/outputs/
 datasets/*
-results/cifar_regularize/*
 *.pt
 *.pt.best
 *.pt.latest

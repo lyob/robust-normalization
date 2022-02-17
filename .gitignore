@@ -4,12 +4,11 @@
 *.swp
 
 # unwanted files
-#results/
 slurm_jobs/*/mnist_param.txt
 slurm_jobs/*/errors/
-#slurm_jobs/*/outputs/
-datasets/*
-results/cifar-normalize/
+# slurm_jobs/*/outputs/
+datasets/
+results/cifar_regularize/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

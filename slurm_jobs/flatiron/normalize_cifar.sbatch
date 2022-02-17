@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -n 1 # one core
 #SBATCH -p gpu --gpus=1 -c 1 --gpus-per-task=1 --constraint=v100
-#SBATCH -t 5000
+#SBATCH -t 1-1:00:00
 #SBATCH --mem=16G
 #SBATCH --job-name=normalize
 #SBATCH --output ./outputs/cifar/out.%j.%a.%N.out -e ./errors/cifar/err.%j.%a.%N.err

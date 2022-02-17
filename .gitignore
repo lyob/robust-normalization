@@ -8,7 +8,7 @@
 slurm_jobs/*/mnist_param.txt
 slurm_jobs/*/errors/
 #slurm_jobs/*/outputs/
-
+datasets/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

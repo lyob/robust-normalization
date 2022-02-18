@@ -57,7 +57,8 @@ def main(save_folder, model_name, seed, mode='train', normalize='nn', weight_dec
     print(f'Save folder: {save_folder}, model_name: {model_name}, seed: {seed}, mode: {mode}, \
         attack_mode: {attack_mode}, eps: {eps}, normalize: {normalize}, wd: {weight_decay}')
     
-    ds = CIFAR(data_path='/mnt/ceph/users/blyo1/syLab/robust-normalization/datasets/')
+    ds = CIFAR(data_path='/mnt/ceph/users/blyo1/syLab/robust-normalization/datasets/')  # flatiron cluster
+    ds = CIFAR(data_path='/scratch/bl3021/research/sy-lab/robust-normalization/datasets/')  # nyu cluster
     train_loader, val_loader = ds.make_loaders(batch_size=128, workers=8)
     save_name_base = f"{model_name}-normalize_{normalize}-wd_{weight_decay}-seed_{seed}"
     

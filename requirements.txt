@@ -9,4 +9,7 @@ cox
 adversarial-robustness-toolbox 
 jupyter_client
 autograd
+cvxopt
 scipy
+pymanopt  # pip
+

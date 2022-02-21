@@ -2,7 +2,7 @@
 #SBATCH --cpus-per-task=1 # one core
 #SBATCH --nodes=1 # one node
 #SBATCH --ntasks-per-node=1 # one task per node
-#SBATCH --time=5000
+#SBATCH --time=0:20:00
 #SBATCH --mem=16G
 #SBATCH --job-name=normalize
 #SBATCH --mail-type=END

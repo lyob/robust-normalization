@@ -3,38 +3,29 @@ import numpy as np
 np.random.seed(0)
 
 import os
-import sys
-# sys.path.insert(0,'..')
+import argparse
+import pickle
 folder_path = '../'
 os.chdir(folder_path)
 
 from cifar_layer_norm import ResNet, BasicBlock
 from mnist_layer_norm import Net
 
-import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
-# from torchvision import datasets, transforms, models
 
-from importlib import reload
 import mftma
-reload(mftma)
 from mftma.manifold_analysis_correlation import manifold_analysis_corr
 from mftma.utils.analyze_pytorch import analyze
+from mftma.utils.make_manifold_data import make_manifold_data
 from mftma.utils.activation_extractor import extractor
 
 from art.utils import load_mnist, load_cifar10
-from robustness import model_utils, attacker
+from robustness import attacker
 from robustness.datasets import CIFAR
 import dill
 
 #%% import trained model and select normalization method
-
-dataset_name = "cifar"  # cifar or mnist
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device = "cpu"
-print(device)
 
 # import trained models
 def import_trained_model(n, dataset_name):
@@ -85,23 +76,8 @@ def import_trained_model(n, dataset_name):
 
     return model
 
-# for idx, m in enumerate(normalize_method):
-trained_models = {}
-normalize_method = ["bn", "gn", "in", "ln", "lrnb", "lrnc", "lrns", "nn"]
-models = dict()
-for idx, norm in enumerate(normalize_method):
-    print(f'importing the {norm} model')
-    model = import_trained_model(norm, dataset_name)
-    models[norm] = model
 
 #%% create manifold dataset and extract activations
-
-reload(mftma)
-# reload(sys.modules['mftma'])
-reload(mftma.utils.make_manifold_data)
-reload(mftma.utils.activation_extractor)
-from mftma.utils.make_manifold_data import make_manifold_data
-from mftma.utils.activation_extractor import extractor
 
 # create the manifold dataset
 def create_manifold_dataset(model, dataset_name):
@@ -129,13 +105,6 @@ def create_manifold_dataset(model, dataset_name):
     activations = extractor(model, data, layer_types=['Conv2d', 'Linear'])
     return activations
 
-model_activations = dict()
-for model_name, model in models.items():
-    print(f'creating manifold dataset for model {model_name}...')
-    activations = create_manifold_dataset(model, dataset_name)
-    print('extracted layers:\n', list(activations.keys()))
-    model_activations[model_name] = activations
-
 
 #%% prepare activations for analysis
 '''
@@ -162,10 +131,6 @@ def prepare_data_for_analysis(activations):
         activations[layer] = X
     return activations
 
-model_activations2 = dict()
-for model_name, activations in model_activations.items():
-    print(f'preparing model {model_name} for analysis...')
-    model_activations2[model_name] = prepare_data_for_analysis(activations)
 
 
 #%% run mftma analysis on the prepped activations and store results for plotting
@@ -212,40 +177,61 @@ def analyze(activations):
         dimensions.append((d_mean, d_std))
         correlations.append(r0)
 
-    return capacities, radii, dimensions, correlations
+    return (capacities, radii, dimensions, correlations)
 
-for model_name, activations in model_activations2.items():
+
+#%% save/export the results
+def save_results(metrics, base_save_folder, dataset_name, model_name):
+    # set the save path
+    save_folder = os.path.join(base_save_folder, dataset_name)
+    if not os.path.exists(save_folder):
+        os.makedirs(save_folder, exist_ok=True)
+
+    # save python object using pickle
+    save_name_base = f'metrics_{model_name}'
+    save_name = os.path.join(save_folder, save_name_base + '.pkl')
+    pickle.dump(metrics, open(save_name,'wb'))
+
+
+#%% main fn
+if __name__ == '__main__':
+    print("we are running!", flush=True)
+    parser = argparse.ArgumentParser(description='Run MFTMA analysis on trained MNIST/CIFAR norm models')
+    parser.add_argument('--norm_method', help='The normalization method')
+    parser.add_argument('--dataset_name', help='The dataset the model was trained on')
+    parser.add_argument('--save_folder', help='The folder to save the results of the analysis')
+    args = parser.parse_args()
+
+    save_folder = os.path.join(args.save_folder, 'cifar_regularize')
+
+    dataset_name = args.dataset_name  # cifar or mnist
+    assert dataset_name in ["mnist", "cifar"], "Dataset should either be `mnist` or `cifar`."
+    
+    model_name = args.norm_method
+    normalize_methods = ["bn", "gn", "in", "ln", "lrnb", "lrnc", "lrns", "nn"]
+    assert model_name in normalize_methods, "Chosen method should be a valid norm."
+
+
+    global device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = "cpu"
+    print(device)
+
+    print(f'importing the {model_name} model')
+    model = import_trained_model(model_name, dataset_name)
+
+    print(f'creating manifold dataset for model {model_name}...')
+    activations = create_manifold_dataset(model, dataset_name)
+    print('extracted layers:\n', list(activations.keys()))
+
+    print(f'preparing model {model_name} for analysis...')
+    activations = prepare_data_for_analysis(activations)
+
     print(f'running analysis on model {model_name}...')
-    capacities, radii, dimensions, correlations = analyze(activations)
+    metrics = analyze(activations)
+    
+    print('saving the results of the analysis...')
+    save_results(metrics, save_folder, dataset_name, model_name)
 
 
-#%% plot the results
-'''
-we plot the results of the analysis we just ran. Note we won't plot the results of the
-final linear layer because this is the model output after the model has already occurred
-'''
-fig, axes = plt.subplots(1, 4, figsize=(18, 4))
-
-axes[0].plot(capacities, linewidth=5)
-axes[1].plot(radii, linewidth=5)
-axes[2].plot(dimensions, linewidth=5)
-axes[3].plot(correlations, linewidth=5)
-
-axes[0].set_ylabel(r'$\alpha_M$', fontsize=18)
-axes[1].set_ylabel(r'$R_M$', fontsize=18)
-axes[2].set_ylabel(r'$D_M$', fontsize=18)
-axes[3].set_ylabel(r'$\rho_{center}$', fontsize=18)
-
-names = list(activations.keys())
-names = [n.split('_')[1] + ' ' + n.split('_')[2] for n in names]
-for ax in axes:
-    ax.set_xticks([i for i, _ in enumerate(names)])
-    ax.set_xticklabels(names, rotation=90, fontsize=16)
-    ax.tick_params(axis='both', which='major', labelsize=14)
-
-plt.tight_layout()
-plt.show()
-
-#%% 
-
-
+# %%

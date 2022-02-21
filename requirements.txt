@@ -1,6 +1,9 @@
-numpy
-torch
+torch==1.7.1
+torchvision
 h5py
 cox
-robustness  
+robustness  # pip
 adversarial-robustness-toolbox 
+jupyter_client
+autograd
+scipy

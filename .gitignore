@@ -8,8 +8,9 @@ slurm_jobs/*/mnist_param.txt
 slurm_jobs/*/errors/
 slurm_jobs/*/outputs/
 datasets/*
-results/cifar_regularize/
-results/mnist_regularize/
+results/*
+# results/cifar_regularize/
+# results/mnist_regularize/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

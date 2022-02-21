@@ -3,10 +3,14 @@ import numpy as np
 np.random.seed(0)
 
 import os
+import sys
 import argparse
 import pickle
-folder_path = '../'
-os.chdir(folder_path)
+
+os.chdir('../')
+# os.chdir('./')
+# sys.path.append('..')
+# sys.path.append('.')
 
 from cifar_layer_norm import ResNet, BasicBlock
 from mnist_layer_norm import Net
@@ -14,7 +18,7 @@ from mnist_layer_norm import Net
 import torch
 import torch.nn as nn
 
-import mftma
+os.chdir('./analysis')
 from mftma.manifold_analysis_correlation import manifold_analysis_corr
 from mftma.utils.analyze_pytorch import analyze
 from mftma.utils.make_manifold_data import make_manifold_data
@@ -38,7 +42,7 @@ def seed_everything(seed):
 
 # import trained models
 def import_trained_model(n, dataset_name):
-    save_folder = os.path.join("..", "results", f"{dataset_name}_regularize", "trained_models", "standard")
+    save_folder = os.path.join("..", "..", "results", f"{dataset_name}_regularize", "trained_models", "standard")
     if (dataset_name=="mnist"):
         model_name_base = "standard-lr_0.01-wd_0.0005-seed_17-normalize_"
         model_name = os.path.join(save_folder, f"{model_name_base}{n}.pth")
@@ -193,6 +197,7 @@ def analyze(activations):
 def save_results(metrics, base_save_folder, dataset_name, model_name):
     # set the save path
     save_folder = os.path.join(base_save_folder, dataset_name)
+    print(f'the save folder is {save_folder}')
     if not os.path.exists(save_folder):
         os.makedirs(save_folder, exist_ok=True)
 

@@ -1,8 +1,11 @@
+robustness  # pip
+numpy
 torch==1.7.1
-torchvision
+torchvision==0.8.2
+torchaudio==0.7.2
+cudatoolkit==10.2
 h5py
 cox
-robustness  # pip
 adversarial-robustness-toolbox 
 jupyter_client
 autograd

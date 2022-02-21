@@ -9,14 +9,16 @@ WEIGHT_DECAY=$6
 NORMALIZE=$7
 EP=$8
 
-module purge;
-bash /share/apps/anaconda3/2020.07/etc/profile.d/conda.sh;
-cd /scratch/bl3021/research/sy-lab/;
-conda activate ./penv;
+#module purge;
+#module load anaconda3/2020.07;
+source /share/apps/anaconda3/2020.07/etc/profile.d/conda.sh;
 
+conda activate /scratch/bl3021/.conda/envs/py36;
+# conda activate py36
+cd /scratch/bl3021/research/sy-lab/;
 cd robust-normalization/code/
 
-python3 cifar_normalize.py \
+python cifar_normalize.py \
 	--save_folder ${SAVE_FOLDER} \
 	--model_name ${MODEL} \
 	--seed ${SEED} \

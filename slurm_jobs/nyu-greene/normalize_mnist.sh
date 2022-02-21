@@ -12,7 +12,7 @@ EP=$8
 module purge;
 bash /share/apps/anaconda3/2020.07/etc/profile.d/conda.sh;
 cd /scratch/bl3021/research/sy-lab/;
-conda activate ./penv;
+conda activate pyenv36;
 
 cd robust-normalization/code/
 

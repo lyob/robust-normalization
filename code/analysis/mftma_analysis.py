@@ -165,6 +165,11 @@ for layer, data in activations.items():
 
 #%% run mftma analysis on the prepped activations and store results for plotting
 
+def calculate_harmonic_std(array):
+    mean = 1/np.mean(1/a)
+    std = 
+
+
 capacities = []
 radii = []
 dimensions = []
@@ -184,7 +189,7 @@ for layer_name, X, in activations.items():
     d_mean = np.mean(d)
 
     # compute the std values
-    a_std = 
+    a_std = calculate_harmonic_std(a)
     r_std = np.std(r)
     d_std = np.std(d)
     

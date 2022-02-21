@@ -9,6 +9,7 @@ slurm_jobs/*/errors/
 slurm_jobs/*/outputs/
 datasets/*
 results/cifar_regularize/
+results/mnist_regularize/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

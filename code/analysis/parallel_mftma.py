@@ -25,6 +25,15 @@ from robustness import attacker
 from robustness.datasets import CIFAR
 import dill
 
+#%% seed everything helper function
+def seed_everything(seed):
+    #initiate seed to try to make the result reproducible 
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+
+
 #%% import trained model and select normalization method
 
 # import trained models
@@ -200,6 +209,7 @@ if __name__ == '__main__':
     parser.add_argument('--norm_method', help='The normalization method')
     parser.add_argument('--dataset_name', help='The dataset the model was trained on')
     parser.add_argument('--save_folder', help='The folder to save the results of the analysis')
+    parser.add_argument('--seed', help='set the seed of the run.')
     args = parser.parse_args()
 
     save_folder = os.path.join(args.save_folder, 'cifar_regularize')
@@ -210,6 +220,8 @@ if __name__ == '__main__':
     model_name = args.norm_method
     normalize_methods = ["bn", "gn", "in", "ln", "lrnb", "lrnc", "lrns", "nn"]
     assert model_name in normalize_methods, "Chosen method should be a valid norm."
+
+    seed_everything(args.seed)
 
 
     global device

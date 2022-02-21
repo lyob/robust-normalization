@@ -166,9 +166,12 @@ for layer, data in activations.items():
 #%% run mftma analysis on the prepped activations and store results for plotting
 
 def calculate_harmonic_std(array):
-    mean = 1/np.mean(1/a)
-    std = 
+    n = len(array)
+    s2 = np.var(1/array)
+    mean = 1/n * np.sum(1/array)
 
+    var = 1/n * s2 / mean**4
+    return var**0.5
 
 capacities = []
 radii = []
@@ -184,7 +187,8 @@ for layer_name, X, in activations.items():
     a, r, d, r0, K = manifold_analysis_corr(X, 0, 300, n_reps=1)
     
     # Compute the mean values
-    a_mean = 1/np.mean(1/a)
+    a_mean = 1/np.mean(1/a)  # not sure why we use a (sort-of) harmonic mean
+    # a_mean = len(a)/np.mean(1/a)
     r_mean = np.mean(r)
     d_mean = np.mean(d)
 

@@ -11,8 +11,7 @@ NORM_METHODS=("lrnb")
 for DATASET in ${DATASETS[@]};do
 	for SEED in ${SEEDS[@]};do
 		for NORM_METHOD in ${NORM_METHODS[@]};do
-				echo "${SAVE_FOLDER} ${DATASET} ${SEED} ${NORM_METHOD}" >> ${PARAM_FILE}
-			done
+			echo "${SAVE_FOLDER} ${DATASET} ${SEED} ${NORM_METHOD}" >> ${PARAM_FILE}
 		done
 	done
 done

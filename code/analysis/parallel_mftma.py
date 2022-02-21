@@ -221,7 +221,7 @@ if __name__ == '__main__':
     normalize_methods = ["bn", "gn", "in", "ln", "lrnb", "lrnc", "lrns", "nn"]
     assert model_name in normalize_methods, "Chosen method should be a valid norm."
 
-    seed_everything(args.seed)
+    seed_everything(int(args.seed))
 
 
     global device

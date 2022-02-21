@@ -8,9 +8,6 @@ import argparse
 import pickle
 
 os.chdir('../')
-# os.chdir('./')
-# sys.path.append('..')
-# sys.path.append('.')
 
 from cifar_layer_norm import ResNet, BasicBlock
 from mnist_layer_norm import Net
@@ -217,14 +214,21 @@ if __name__ == '__main__':
     parser.add_argument('--seed', help='set the seed of the run.')
     args = parser.parse_args()
 
-    save_folder = os.path.join(args.save_folder, 'cifar_regularize')
-
     dataset_name = args.dataset_name  # cifar or mnist
     assert dataset_name in ["mnist", "cifar"], "Dataset should either be `mnist` or `cifar`."
-    
+
+    save_folder = args.save_folder
+    if (args.save_folder==None):
+        save_folder = '../../results/mftma/'
+
     model_name = args.norm_method
     normalize_methods = ["bn", "gn", "in", "ln", "lrnb", "lrnc", "lrns", "nn"]
-    assert model_name in normalize_methods, "Chosen method should be a valid norm."
+    if (model_name != None):
+        assert model_name in normalize_methods, "Chosen method should be a valid norm."
+        model_name = [model_name]
+    else:
+        model_name = normalize_methods
+    print(f'normalization methods to be analyzed: {model_name}')
 
     seed_everything(int(args.seed))
 
@@ -234,21 +238,22 @@ if __name__ == '__main__':
     device = "cpu"
     print(device)
 
-    print(f'importing the {model_name} model')
-    model = import_trained_model(model_name, dataset_name)
+    for m in model_name:
+        print(f'importing the {m} model')
+        model = import_trained_model(m, dataset_name)
 
-    print(f'creating manifold dataset for model {model_name}...')
-    activations = create_manifold_dataset(model, dataset_name)
-    print('extracted layers:\n', list(activations.keys()))
+        print(f'creating manifold dataset for model {m}...')
+        activations = create_manifold_dataset(model, dataset_name)
+        print('extracted layers:\n', list(activations.keys()))
 
-    print(f'preparing model {model_name} for analysis...')
-    activations = prepare_data_for_analysis(activations)
+        print(f'preparing model {m} for analysis...')
+        activations = prepare_data_for_analysis(activations)
 
-    print(f'running analysis on model {model_name}...')
-    metrics = analyze(activations)
-    
-    print('saving the results of the analysis...')
-    save_results(metrics, save_folder, dataset_name, model_name)
+        print(f'running analysis on model {m}...')
+        metrics = analyze(activations)
+        
+        print('saving the results of the analysis...')
+        save_results(metrics, save_folder, dataset_name, m)
 
 
 # %%

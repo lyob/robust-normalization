@@ -71,9 +71,6 @@ def import_trained_model(n, dataset_name):
         
         # load previously saved model
         model = attacker.AttackerModel(arch, ds)
-        # model, _ = model_utils.make_and_restore_model(arch=model, dataset=ds,
-        #     resume_path=model_name)
-        # model = model.model
 
         # load saved weights
         checkpoint = torch.load(model_name, pickle_module=dill, map_location=device)
@@ -82,7 +79,7 @@ def import_trained_model(n, dataset_name):
         sd = {k[len('module.'):]:v for k,v in sd.items()}
         model.load_state_dict(sd)
         model.eval()
-        # model = model.to(device)
+        model = model.to(device)
         print("=> loaded checkpoint '{}' (epoch {})".format(model_name, checkpoint['epoch']))
 
     return model
@@ -143,7 +140,6 @@ def prepare_data_for_analysis(activations):
     return activations
 
 
-
 #%% run mftma analysis on the prepped activations and store results for plotting
 
 def calculate_harmonic_std(array):
@@ -155,38 +151,33 @@ def calculate_harmonic_std(array):
     return var**0.5
 
 def analyze(activations):
-    capacities = []
-    radii = []
-    dimensions = []
-    correlations = []
+    capacities = dict()
+    radii = dict()
+    dimensions = dict()
+    correlations = dict()
 
     for layer_name, X, in activations.items():
         # Analyze each layer's activations
         a, r, d, r0, K = manifold_analysis_corr(X, 0, 300, n_reps=1)
         
         # Compute the mean values
-        a_mean = 1/np.mean(1/a)  # not sure why we use a (sort-of) harmonic mean
-        # a_mean = len(a)/np.mean(1/a)
+        a_mean = 1/np.mean(1/a)
         r_mean = np.mean(r)
         d_mean = np.mean(d)
-
-        # compute the std values
-        a_std = calculate_harmonic_std(a)
-        r_std = np.std(r)
-        d_std = np.std(d)
         
         print(f"{layer_name}\n \
-            capacity: {a_mean:4f} ± {a_std:4f}\n \
-            radius: {r_mean:4f} ± {r_std:4f}\n \
-            dimension: {d_mean:4f} ± {d_std:4f}\n \
+            capacity: {a_mean:4f}\n \
+            radius: {r_mean:4f}\n \
+            dimension: {d_mean:4f}\n \
             correlation: {r0:4f}"
         )
         
         # Store for later
-        capacities.append((a_mean, a_std))
-        radii.append((r_mean, r_std))
-        dimensions.append((d_mean, d_std))
-        correlations.append(r0)
+        capacities[layer_name] = a_mean
+        radii[layer_name] = r_mean
+        dimensions[layer_name] = d_mean
+        correlations[layer_name] = r0
+
 
     return (capacities, radii, dimensions, correlations)
 

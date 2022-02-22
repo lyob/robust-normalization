@@ -7,6 +7,7 @@ import sys
 import argparse
 import pickle
 
+sys.path.append('..')
 os.chdir('../')
 
 from cifar_layer_norm import ResNet, BasicBlock

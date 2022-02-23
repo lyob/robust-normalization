@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "/mnt/home/blyo1/ceph/envs/pyenv36/lib/python3.6/runpy.py", line 193, in _run_module_as_main
+    "__main__", mod_spec)
+  File "/mnt/home/blyo1/ceph/envs/pyenv36/lib/python3.6/runpy.py", line 85, in _run_code
+    exec(code, run_globals)
+  File "/mnt/ceph/users/blyo1/syLab/robust-normalization/code/analysis/parallel_mftma.py", line 225, in <module>
+    seed_everything(int(args.seed))
+TypeError: int() argument must be a string, a bytes-like object or a number, not 'NoneType'
+mftma.sh: line 15: --seed: command not found

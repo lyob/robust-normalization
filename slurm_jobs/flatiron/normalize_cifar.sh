@@ -14,6 +14,7 @@ source /mnt/home/blyo1/miniconda3/etc/profile.d/conda.sh
 conda activate pyenv36;
 
 python3 cifar_normalize.py \
+	--cluster "flatiron" \
 	--save_folder ${SAVE_FOLDER} \
 	--model_name ${MODEL} \
 	--seed ${SEED} \

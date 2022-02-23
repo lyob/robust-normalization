@@ -11,7 +11,7 @@ conda activate pyenv36
 
 python -m parallel_mftma \
 	--save_folder ${SAVE_FOLDER} \
-	--dataset_name ${DATASET}
+	--dataset_name ${DATASET} \
 	--seed ${SEED} \
-	--norm_method ${NORM_METHOD} \
+	--norm_method ${NORM_METHOD} 
 

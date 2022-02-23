@@ -1,0 +1,166 @@
+Line 6
+/mnt/home/blyo1/ceph/syLab/robust-normalization/results/mftma/ cifar 17 lrnc
+we are running!
+normalization methods to be analyzed: ['lrnc']
+cpu
+importing the lrnc model
+=> loaded checkpoint '../../results/cifar_regularize/trained_models/standard/standard-normalize_lrnc-wd_0.0005-seed_17/checkpoint.pt.best' (epoch 91)
+creating manifold dataset for model lrnc...
+extracted layers:
+ ['layer_0_Input', 'layer_172_Conv2d', 'layer_187_Conv2d', 'layer_188_Conv2d', 'layer_205_Conv2d', 'layer_206_Conv2d', 'layer_223_Conv2d', 'layer_224_Conv2d', 'layer_240_Conv2d', 'layer_244_Conv2d', 'layer_245_Conv2d', 'layer_262_Conv2d', 'layer_263_Conv2d', 'layer_279_Conv2d', 'layer_283_Conv2d', 'layer_284_Conv2d', 'layer_301_Conv2d', 'layer_302_Conv2d', 'layer_318_Conv2d', 'layer_322_Conv2d', 'layer_323_Conv2d', 'layer_340_Linear']
+preparing model lrnc for analysis...
+layer: layer_0_Input, N: 3072
+layer: layer_172_Conv2d, N: 65536
+Projecting layer_172_Conv2d
+layer: layer_187_Conv2d, N: 65536
+Projecting layer_187_Conv2d
+layer: layer_188_Conv2d, N: 65536
+Projecting layer_188_Conv2d
+layer: layer_205_Conv2d, N: 65536
+Projecting layer_205_Conv2d
+layer: layer_206_Conv2d, N: 65536
+Projecting layer_206_Conv2d
+layer: layer_223_Conv2d, N: 32768
+Projecting layer_223_Conv2d
+layer: layer_224_Conv2d, N: 32768
+Projecting layer_224_Conv2d
+layer: layer_240_Conv2d, N: 32768
+Projecting layer_240_Conv2d
+layer: layer_244_Conv2d, N: 32768
+Projecting layer_244_Conv2d
+layer: layer_245_Conv2d, N: 32768
+Projecting layer_245_Conv2d
+layer: layer_262_Conv2d, N: 16384
+Projecting layer_262_Conv2d
+layer: layer_263_Conv2d, N: 16384
+Projecting layer_263_Conv2d
+layer: layer_279_Conv2d, N: 16384
+Projecting layer_279_Conv2d
+layer: layer_283_Conv2d, N: 16384
+Projecting layer_283_Conv2d
+layer: layer_284_Conv2d, N: 16384
+Projecting layer_284_Conv2d
+layer: layer_301_Conv2d, N: 8192
+Projecting layer_301_Conv2d
+layer: layer_302_Conv2d, N: 8192
+Projecting layer_302_Conv2d
+layer: layer_318_Conv2d, N: 8192
+Projecting layer_318_Conv2d
+layer: layer_322_Conv2d, N: 8192
+Projecting layer_322_Conv2d
+layer: layer_323_Conv2d, N: 8192
+Projecting layer_323_Conv2d
+layer: layer_340_Linear, N: 10
+running analysis on model lrnc...
+layer_0_Input
+             capacity: 0.058352
+             radius: 1.353894
+             dimension: 25.980710
+             correlation: 0.493706
+layer_172_Conv2d
+             capacity: 0.040741
+             radius: 1.564234
+             dimension: 34.393837
+             correlation: 0.453074
+layer_187_Conv2d
+             capacity: 0.042830
+             radius: 1.471375
+             dimension: 33.648609
+             correlation: 0.372272
+layer_188_Conv2d
+             capacity: 0.041222
+             radius: 2.237427
+             dimension: 32.910878
+             correlation: 0.316399
+layer_205_Conv2d
+             capacity: 0.042575
+             radius: 1.466642
+             dimension: 33.993257
+             correlation: 0.371755
+layer_206_Conv2d
+             capacity: 0.040460
+             radius: 1.500715
+             dimension: 35.308381
+             correlation: 0.317611
+layer_223_Conv2d
+             capacity: 0.039712
+             radius: 1.506761
+             dimension: 35.496116
+             correlation: 0.291465
+layer_224_Conv2d
+             capacity: 0.042494
+             radius: 1.459434
+             dimension: 34.216966
+             correlation: 0.312933
+layer_240_Conv2d
+             capacity: 0.042293
+             radius: 1.485294
+             dimension: 34.074626
+             correlation: 0.479060
+layer_244_Conv2d
+             capacity: 0.045133
+             radius: 1.424394
+             dimension: 32.778571
+             correlation: 0.300903
+layer_245_Conv2d
+             capacity: 0.045359
+             radius: 1.418566
+             dimension: 32.404661
+             correlation: 0.349904
+layer_262_Conv2d
+             capacity: 0.046412
+             radius: 1.403359
+             dimension: 32.161063
+             correlation: 0.339064
+layer_263_Conv2d
+             capacity: 0.046433
+             radius: 1.416579
+             dimension: 31.965567
+             correlation: 0.281683
+layer_279_Conv2d
+             capacity: 0.046904
+             radius: 1.382752
+             dimension: 32.086973
+             correlation: 0.429792
+layer_283_Conv2d
+             capacity: 0.049736
+             radius: 1.385439
+             dimension: 30.067048
+             correlation: 0.395017
+layer_284_Conv2d
+             capacity: 0.054826
+             radius: 1.330130
+             dimension: 28.108541
+             correlation: 0.314988
+layer_301_Conv2d
+             capacity: 0.067187
+             radius: 1.184557
+             dimension: 24.889771
+             correlation: 0.352553
+layer_302_Conv2d
+             capacity: 0.086235
+             radius: 1.372160
+             dimension: 18.107536
+             correlation: 0.298901
+layer_318_Conv2d
+             capacity: 0.048037
+             radius: 2.953593
+             dimension: 30.049741
+             correlation: 0.427659
+layer_322_Conv2d
+             capacity: 0.273843
+             radius: 0.877479
+             dimension: 7.299136
+             correlation: 0.291211
+layer_323_Conv2d
+             capacity: 0.401734
+             radius: 0.826543
+             dimension: 4.843129
+             correlation: 0.276869
+layer_340_Linear
+             capacity: 0.620524
+             radius: 0.744155
+             dimension: 2.940079
+             correlation: 0.356308
+saving the results of the analysis...
+the save folder is /mnt/home/blyo1/ceph/syLab/robust-normalization/results/mftma/cifar

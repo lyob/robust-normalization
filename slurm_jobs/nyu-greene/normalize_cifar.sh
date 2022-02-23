@@ -19,6 +19,7 @@ cd /scratch/bl3021/research/sy-lab/;
 cd robust-normalization/code/
 
 python cifar_normalize.py \
+	--cluster "nyu" \
 	--save_folder ${SAVE_FOLDER} \
 	--model_name ${MODEL} \
 	--seed ${SEED} \

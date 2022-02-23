@@ -1,0 +1,4 @@
+Line 1
+/mnt/home/blyo1/ceph/syLab/robust-normalization/results/mftma/ cifar 17 lrnb
+we are running!
+normalization methods to be analyzed: ['bn', 'gn', 'in', 'ln', 'lrnb', 'lrnc', 'lrns', 'nn']

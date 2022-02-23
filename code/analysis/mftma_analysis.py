@@ -1,10 +1,6 @@
 #%% import necessary stuff for mftma analysis
 import numpy as np
-np.random.seed(0)
-
 import os
-import sys
-# sys.path.insert(0,'..')
 folder_path = '../'
 os.chdir(folder_path)
 
@@ -14,7 +10,6 @@ from mnist_layer_norm import Net
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
-# from torchvision import datasets, transforms, models
 
 from importlib import reload
 import mftma
@@ -24,7 +19,7 @@ from mftma.utils.analyze_pytorch import analyze
 from mftma.utils.activation_extractor import extractor
 
 from art.utils import load_mnist, load_cifar10
-from robustness import model_utils, attacker
+from robustness import attacker
 from robustness.datasets import CIFAR
 import dill
 
@@ -69,9 +64,6 @@ def import_trained_model(n, dataset_name):
         
         # load previously saved model
         model = attacker.AttackerModel(arch, ds)
-        # model, _ = model_utils.make_and_restore_model(arch=model, dataset=ds,
-        #     resume_path=model_name)
-        # model = model.model
 
         # load saved weights
         checkpoint = torch.load(model_name, pickle_module=dill, map_location=device)
@@ -80,6 +72,7 @@ def import_trained_model(n, dataset_name):
         sd = {k[len('module.'):]:v for k,v in sd.items()}
         model.load_state_dict(sd)
         model.eval()
+        print(model.model)
         # model = model.to(device)
         print("=> loaded checkpoint '{}' (epoch {})".format(model_name, checkpoint['epoch']))
 
@@ -126,7 +119,8 @@ def create_manifold_dataset(model, dataset_name):
     data = [d.to(device) for d in data]
     
     # extract activations from the model
-    activations = extractor(model, data, layer_types=['Conv2d', 'Linear'])
+    # activations = extractor(model, data, layer_types=['Conv2d', 'Linear'])
+    activations = extractor(model, data)
     return activations
 
 model_activations = dict()
@@ -189,27 +183,21 @@ def analyze(activations):
         a, r, d, r0, K = manifold_analysis_corr(X, 0, 300, n_reps=1)
         
         # Compute the mean values
-        a_mean = 1/np.mean(1/a)  # not sure why we use a (sort-of) harmonic mean
-        # a_mean = len(a)/np.mean(1/a)
+        a_mean = 1/np.mean(1/a) 
         r_mean = np.mean(r)
         d_mean = np.mean(d)
-
-        # compute the std values
-        a_std = calculate_harmonic_std(a)
-        r_std = np.std(r)
-        d_std = np.std(d)
         
         print(f"{layer_name}\n \
-            capacity: {a_mean:4f} ± {a_std:4f}\n \
-            radius: {r_mean:4f} ± {r_std:4f}\n \
-            dimension: {d_mean:4f} ± {d_std:4f}\n \
+            capacity: {a_mean:4f}\n \
+            radius: {r_mean:4f}\n \
+            dimension: {d_mean:4f}\n \
             correlation: {r0:4f}"
         )
         
         # Store for later
-        capacities.append((a_mean, a_std))
-        radii.append((r_mean, r_std))
-        dimensions.append((d_mean, d_std))
+        capacities.append(a_mean)
+        radii.append(r_mean)
+        dimensions.append(d_mean)
         correlations.append(r0)
 
     return capacities, radii, dimensions, correlations

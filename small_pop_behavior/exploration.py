@@ -75,7 +75,7 @@ fig.tight_layout()
 """initial scale matters. I think the inputs should sum to 1 initally, but I have no justification for that.
 Then there's the issue of how the normalization behavior changes with the distribution of neuronal responses""" 
 
-# %%
+# %% interaction between peak and remaining neurons
 # let's plot how the difference between a big peak and a suppressive field interact with each other:
 
 def make_sum_to_one(inputs):
@@ -114,7 +114,7 @@ ax[row].plot(scale_values, scale_differences_exp2)
 ax[row].set(title="exponent value = 2", xlabel="scale difference between magnitude of max amp neuron and other neurons")
 
 
-#%%
+#%% how does 
 # show how norm changes the values of the magnitudes for the peak and suppressive neurons 
 
 peak_differences = [responses[j][4]/normalize(responses[j])[4] for j in range(len(responses))]
@@ -135,4 +135,6 @@ row = 3
 ax[row].plot(scale_values, supp_differences_exp2)
 
 
-# %%
+# %% geometric interpretation of the code
+
+

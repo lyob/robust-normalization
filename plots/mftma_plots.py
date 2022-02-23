@@ -25,9 +25,6 @@ for n in normalize:
 
     norms[n] = metrics
 
-print(list(metrics['capacities'].keys()))
-print(norms['bn']['capacities'].keys())
-
 # %% plot
 
 fig, ax = plt.subplots(4, 1, figsize=(6, 15), sharex=True)

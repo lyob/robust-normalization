@@ -151,6 +151,7 @@ def calculate_harmonic_std(array):
     return var**0.5
 
 def analyze(activations):
+    metrics = {}
     capacities = dict()
     radii = dict()
     dimensions = dict()
@@ -178,8 +179,12 @@ def analyze(activations):
         dimensions[layer_name] = d_mean
         correlations[layer_name] = r0
 
+    metrics['capacities'] = capacities
+    metrics['radii'] = radii
+    metrics['dimensions'] = dimensions
+    metrics['correlations'] = correlations
 
-    return (capacities, radii, dimensions, correlations)
+    return metrics
 
 
 #%% save/export the results

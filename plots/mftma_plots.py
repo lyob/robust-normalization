@@ -25,19 +25,24 @@ for n in normalize:
 
     norms[n] = metrics
 
+print(list(metrics['capacities'].keys()))
+print(norms['bn']['capacities'].keys())
+
 # %% plot
 
-fig, ax = plt.subplots(4, 1, figsize=(6, 15), sharex=True)
+fig, ax = plt.subplots(2, 2, figsize=(15, 10), sharex=True)
 for n in normalize:
-    ax[0].plot(list(norms[n]['capacities'].keys()), list(norms[n]['capacities'].values()), label=n)
-    ax[0].set(title='capacities')
-    ax[1].plot(list(norms[n]['radii'].keys()), list(norms[n]['radii'].values()), label=n)
-    ax[1].set(title='radii')
-    ax[2].plot(list(norms[n]['dimensions'].keys()), list(norms[n]['dimensions'].values()), label=n)
-    ax[2].set(title='dimensions')
-    ax[3].plot(list(norms[n]['correlations'].keys()), list(norms[n]['correlations'].values()), label=n)
-    ax[3].set(title='correlations')
-ax[3].tick_params(axis='x', rotation=90)
-
+    l1 = ax[0,0].plot(list(norms[n]['capacities'].keys()), list(norms[n]['capacities'].values()), label=n)
+    ax[0,0].set(title='capacities')
+    ax[1,0].plot(list(norms[n]['radii'].keys()), list(norms[n]['radii'].values()), label=n)
+    ax[1,0].set(title='radii')
+    ax[0,1].plot(list(norms[n]['dimensions'].keys()), list(norms[n]['dimensions'].values()), label=n)
+    ax[0,1].set(title='dimensions')
+    ax[1,1].plot(list(norms[n]['correlations'].keys()), list(norms[n]['correlations'].values()), label=n)
+    ax[1,1].set(title='correlations')
+fig.legend([l1], labels=normalize, loc=2, bbox_to_anchor=(0.55, 0.8, 0, 0))
+ax[1,0].tick_params(axis='x', rotation=90)
+ax[1,1].tick_params(axis='x', rotation=90)
+fig.tight_layout()
 
 # %%

@@ -53,12 +53,14 @@ def load_model(dataset, weight=None, normalize='nn'):
     return model
 
 
-def main(save_folder, model_name, seed, mode='train', normalize='nn', weight_decay=0.0, eps=None, attack_mode= 'inf'):
+def main(save_folder, model_name, seed, cluster, mode='train', normalize='nn', weight_decay=0.0, eps=None, attack_mode= 'inf',):
     print(f'Save folder: {save_folder}, model_name: {model_name}, seed: {seed}, mode: {mode}, \
         attack_mode: {attack_mode}, eps: {eps}, normalize: {normalize}, wd: {weight_decay}')
     
-    # ds = CIFAR(data_path='/mnt/ceph/users/blyo1/syLab/robust-normalization/datasets/')  # flatiron cluster
-    ds = CIFAR(data_path='/scratch/bl3021/research/sy-lab/robust-normalization/datasets/')  # nyu cluster
+    if cluster=='nyu':
+        ds = CIFAR(data_path='/scratch/bl3021/research/sy-lab/robust-normalization/datasets/')  # nyu cluster
+    if cluster=='flatiron':    
+        ds = CIFAR(data_path='/mnt/ceph/users/blyo1/syLab/robust-normalization/datasets/')  # flatiron cluster
     train_loader, val_loader = ds.make_loaders(batch_size=128, workers=8)
     save_name_base = f"{model_name}-normalize_{normalize}-wd_{weight_decay}-seed_{seed}"
     
@@ -179,7 +181,7 @@ def main(save_folder, model_name, seed, mode='train', normalize='nn', weight_dec
         
         if mode == 'val':
             # to speed things up a bit let's just do evaluation on 1000 images. Final analysis ideally on full test set.
-            n_images = 1000
+            n_images = 10000
             predictions = classifier.predict(x_test[:n_images])
             accuracy = np.sum(np.argmax(predictions, axis=1) == np.argmax(y_test[:n_images], axis=1)) / len(y_test[:n_images])
             print("Accuracy on benign test examples: {}%".format(accuracy * 100))
@@ -203,6 +205,10 @@ def main(save_folder, model_name, seed, mode='train', normalize='nn', weight_dec
                     targeted=False)
                 x_test_adv = attack.generate(x=x_test[:n_images], y=y_test[:n_images])
 
+                # save adversarial examples
+                adv_save_name = os.path.join(save_path_eval, f'adv_examples-{save_name_base}-eps_{eps}.pkl')
+                pickle.dump(x_test_adv, open(adv_save_name, 'wb'))
+
                 predictions = classifier.predict(x_test_adv)
                 accuracy = np.sum(np.argmax(predictions, axis=1) == np.argmax(y_test[:n_images], axis=1)) / len(y_test[:n_images])
                 print(f"Accuracy on adversarial test examples: {accuracy*100}",flush=True)
@@ -214,11 +220,13 @@ def main(save_folder, model_name, seed, mode='train', normalize='nn', weight_dec
             if not os.path.exists(save_path_eval):
                 os.makedirs(save_path_eval, exist_ok=True)
             save_name = os.path.join(save_path_eval, save_name_base + '-eps_' + '_'.join(eps) + '.pkl')
-            pickle.dump(saved_perf,open(save_name,'wb'))
+            pickle.dump(saved_perf, open(save_name,'wb'))
+
     
 if __name__ == '__main__':
     print("we are running!", flush=True)
     parser = argparse.ArgumentParser(description='Run MNIST experiments')
+    parser.add_argument('--cluster', help='The cluster you are using, either `nyu` or `flatiron`.')
     parser.add_argument('--save_folder',help='The folder to save model')
     parser.add_argument('--model_name',help='Model name')
     parser.add_argument('--seed', help='Fix seed for reproducibility',type=int)
@@ -233,4 +241,4 @@ if __name__ == '__main__':
 
     save_folder = os.path.join(args.save_folder, 'cifar_regularize')
     main(save_folder, args.model_name, int(args.seed), mode=args.mode, normalize= args.normalize,
-         weight_decay=args.weight_decay, attack_mode=args.attack_mode, eps=eps)
+         weight_decay=args.weight_decay, attack_mode=args.attack_mode, eps=eps, cluster=args.cluster)

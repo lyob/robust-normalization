@@ -1,7 +1,5 @@
 #%% import necessary stuff for mftma analysis
 import numpy as np
-np.random.seed(0)
-
 import os
 import sys
 import argparse
@@ -85,28 +83,44 @@ def import_trained_model(n, dataset_name):
     return model
 
 
+#%%
+# n = 'bn'
+# eps = 1.0 
+
+# save_path = os.path.join('..', '..', 'results', 'cifar_regularize', 'adv_dataset', 'standard')
+# file_name = f'adv_examples-standard-normalize_{n}-wd_0.0005-seed_17-eps_{eps}.pkl'
+# load_file = os.path.join(save_path, file_name)
+# with open(load_file, 'rb') as f:
+#     metrics = pickle.load(f)
+#     print(metrics.shape)
+
+# # shape is (10000, 3, 32, 32) -- I don't have the labels though.
+
 #%% create manifold dataset and extract activations
 
 # create the manifold dataset
-def create_manifold_dataset(model, dataset_name):
+def create_manifold_dataset(model, dataset_name, eps=0):
     sampled_classes = 10
     examples_per_class = 50
      
     # load dataset
-    if dataset_name=="mnist":
-        (x_train, y_train), (x_test, y_test), min_pixel_value, max_pixel_value = load_mnist()
-        x_train = np.swapaxes(x_train, 1, 3).astype(np.float32)
-        train_dataset = (x_train, y_train)
-    elif dataset_name=="cifar":
-        (x_train, y_train), (x_test, y_test), min_pixel_value, max_pixel_value = load_cifar10()
-        x_train = x_train.transpose(0,3,1,2).astype(np.float32)
-        train_dataset = (x_train, y_train)
-    
-    # transpose dataset from tuple of arrays into array of tuples
-    train_dataset = list(zip(x_train, y_train))
-    # print(train_dataset[0][0].shape)
+    if eps == 0:
+        if dataset_name=="mnist":
+            (x_train, y_train), (x_test, y_test), min_pixel_value, max_pixel_value = load_mnist()
+            x_test = np.swapaxes(x_test, 1, 3).astype(np.float32)
+            test_dataset = (x_test, x_test)
+        elif dataset_name=="cifar":
+            (x_train, y_train), (x_test, y_test), min_pixel_value, max_pixel_value = load_cifar10()
+            x_test = x_test.transpose(0,3,1,2).astype(np.float32)
+            test_dataset = (x_test, y_test)
+        
+        # transpose dataset from tuple of arrays into array of tuples
+        test_dataset = list(zip(x_test, y_test))
+    elif eps in []:
+        if dataset_name=="cifar":
+            print('no')
 
-    data = make_manifold_data(train_dataset, sampled_classes, examples_per_class, seed=0)
+    data = make_manifold_data(test_dataset, sampled_classes, examples_per_class, seed=0)
     data = [d.to(device) for d in data]
     
     # extract activations from the model

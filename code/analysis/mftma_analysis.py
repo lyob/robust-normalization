@@ -1,9 +1,11 @@
 #%% import necessary stuff for mftma analysis
 import numpy as np
 import os
-folder_path = '../'
-os.chdir(folder_path)
+import sys
+sys.path.append('..')
+os.chdir('..')
 
+from importlib import reload
 from cifar_layer_norm import ResNet, BasicBlock
 from mnist_layer_norm import Net
 
@@ -11,9 +13,8 @@ import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 
-from importlib import reload
+os.chdir('./analysis')
 import mftma
-reload(mftma)
 from mftma.manifold_analysis_correlation import manifold_analysis_corr
 from mftma.utils.analyze_pytorch import analyze
 from mftma.utils.activation_extractor import extractor
@@ -33,7 +34,7 @@ print(device)
 
 # import trained models
 def import_trained_model(n, dataset_name):
-    save_folder = os.path.join("..", "results", f"{dataset_name}_regularize", "trained_models", "standard")
+    save_folder = os.path.join("..", '..', "results", f"{dataset_name}_regularize", "trained_models", "standard", "backup_small_eps")
     if (dataset_name=="mnist"):
         model_name_base = "standard-lr_0.01-wd_0.0005-seed_17-normalize_"
         model_name = os.path.join(save_folder, f"{model_name_base}{n}.pth")
@@ -89,7 +90,7 @@ for idx, norm in enumerate(normalize_method):
 
 #%% create manifold dataset and extract activations
 
-reload(mftma)
+# reload(mftma)
 # reload(sys.modules['mftma'])
 reload(mftma.utils.make_manifold_data)
 reload(mftma.utils.activation_extractor)
@@ -104,18 +105,22 @@ def create_manifold_dataset(model, dataset_name):
     # load dataset
     if dataset_name=="mnist":
         (x_train, y_train), (x_test, y_test), min_pixel_value, max_pixel_value = load_mnist()
-        x_train = np.swapaxes(x_train, 1, 3).astype(np.float32)
-        train_dataset = (x_train, y_train)
+        x_test = np.swapaxes(x_test, 1, 3).astype(np.float32)
+        test_dataset = (x_test, y_test)
     elif dataset_name=="cifar":
         (x_train, y_train), (x_test, y_test), min_pixel_value, max_pixel_value = load_cifar10()
-        x_train = x_train.transpose(0,3,1,2).astype(np.float32)
-        train_dataset = (x_train, y_train)
+        x_test = x_test.transpose(0,3,1,2).astype(np.float32)
+        test_dataset = (x_test, y_test)
+        print('xtrain shape', x_test.shape)
+        print('ytrain shape', y_test.shape)
+        print('ytrain\n', y_test[0])
     
     # transpose dataset from tuple of arrays into array of tuples
-    train_dataset = list(zip(x_train, y_train))
+    test_dataset = list(zip(x_test, y_test))
+    print('train_dataset shape', test_dataset[0][0])
     # print(train_dataset[0][0].shape)
 
-    data = make_manifold_data(train_dataset, sampled_classes, examples_per_class, seed=0)
+    data = make_manifold_data(test_dataset, sampled_classes, examples_per_class, seed=0)
     data = [d.to(device) for d in data]
     
     # extract activations from the model

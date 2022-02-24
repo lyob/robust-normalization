@@ -206,12 +206,16 @@ def main(save_folder, model_name, seed, cluster, mode='train', normalize='nn', w
                 x_test_adv = attack.generate(x=x_test[:n_images], y=y_test[:n_images])
 
                 # save adversarial examples
+                adv_dataset = {}
+                adv_dataset['x'] = x_test_adv
+                adv_dataset['y'] = y_test[:n_images]
                 save_path_eval = os.path.join(save_folder, 'adv_dataset', model_name)
                 if not os.path.exists(save_path_eval):
                     os.makedirs(save_path_eval, exist_ok=True)
-                adv_save_name = os.path.join(save_path_eval, f'adv_examples-{save_name_base}-eps_{eps[ep_idx]}.pkl')
-                pickle.dump(x_test_adv, open(adv_save_name, 'wb'))
+                adv_save_name = os.path.join(save_path_eval, f'{save_name_base}-eps_{eps[ep_idx]}.pkl')
+                pickle.dump(adv_dataset, open(adv_save_name, 'wb'))
 
+                # calculate accuracy of network on adversarial inputs
                 predictions = classifier.predict(x_test_adv)
                 accuracy = np.sum(np.argmax(predictions, axis=1) == np.argmax(y_test[:n_images], axis=1)) / len(y_test[:n_images])
                 print(f"Accuracy on adversarial test examples: {accuracy*100}",flush=True)

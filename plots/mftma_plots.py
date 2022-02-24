@@ -5,7 +5,7 @@ import os
 import pickle
 
 # import data
-load_path = os.path.join('..', 'results', 'mftma', 'cifar')
+load_path = os.path.join('..', 'results', 'mftma', 'cifar', '0.0005_2')
 normalize = ["lrnb", "lrns", "gn", "ln", "nn", "lrnc", "in", "bn"]
 # normalize = ['bn']
 
@@ -17,15 +17,11 @@ for n in normalize:
     
     metrics = {}
     with open(load_file, 'rb') as f:
-        out = pickle.load(f)
-        metrics['capacities'] = out[0]
-        metrics['radii'] = out[1]
-        metrics['dimensions'] = out[2]
-        metrics['correlations'] = out[3]
+        metrics = pickle.load(f)
+        print(metrics)
 
     norms[n] = metrics
 
-print(list(metrics['capacities'].keys()))
 print(norms['bn']['capacities'].keys())
 
 # %% plot

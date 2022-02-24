@@ -5,7 +5,7 @@ import os
 import pickle
 
 # import data
-load_path = os.path.join('..', 'results', 'mftma', 'cifar', '0.0005_2')
+load_path = os.path.join('..', 'results', 'mftma', 'cifar')
 normalize = ["lrnb", "lrns", "gn", "ln", "nn", "lrnc", "in", "bn"]
 # normalize = ['bn']
 
@@ -31,14 +31,15 @@ for n in normalize:
     l1 = ax[0,0].plot(list(norms[n]['capacities'].keys()), list(norms[n]['capacities'].values()), label=n)
     ax[0,0].set(title='capacities')
     ax[1,0].plot(list(norms[n]['radii'].keys()), list(norms[n]['radii'].values()), label=n)
-    ax[1,0].set(title='radii')
+    ax[1,0].set(title='radii', ylim=([0, 15]))
     ax[0,1].plot(list(norms[n]['dimensions'].keys()), list(norms[n]['dimensions'].values()), label=n)
     ax[0,1].set(title='dimensions')
     ax[1,1].plot(list(norms[n]['correlations'].keys()), list(norms[n]['correlations'].values()), label=n)
     ax[1,1].set(title='correlations')
-fig.legend([l1], labels=normalize, loc=2, bbox_to_anchor=(0.55, 0.8, 0, 0))
+fig.legend([l1], labels=normalize, loc=2, bbox_to_anchor=(0.55, 0.78, 0, 0))
 ax[1,0].tick_params(axis='x', rotation=90)
 ax[1,1].tick_params(axis='x', rotation=90)
+fig.suptitle('ResNet, Cifar-10, eps=2/255')
 fig.tight_layout()
 
 # %%

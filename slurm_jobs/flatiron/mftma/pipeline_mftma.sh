@@ -4,7 +4,7 @@ PARAM_FILE="mftma.txt"
 SAVE_FOLDER="/mnt/home/blyo1/ceph/syLab/robust-normalization/results/mftma/"
 DATASETS=("cifar")
 SEEDS=("17")
-NORM_METHODS=("nn" "bn" "ln" "in" "gn" "lrnc" "lrns")
+NORM_METHODS=("nn" "bn" "ln" "in" "gn" "lrnc" "lrns", "lrnb")
 #NORM_METHODS=("lrnb")
 
 > ${PARAM_FILE}

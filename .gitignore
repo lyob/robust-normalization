@@ -4,9 +4,13 @@
 *.swp
 
 # unwanted files
-slurm_jobs/*/mnist_param.txt
+slurm_jobs/**/mnist_param.txt
+slurm_jobs/**/mftma.txt
+slurm_jobs/**/cifar_param.txt
 slurm_jobs/*/errors/
 slurm_jobs/*/outputs/
+slurm_jobs/**/outputs/
+slurm_jobs/**/errors/
 datasets/*
 results/*
 # results/cifar_regularize/

@@ -216,7 +216,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset_name', help='The dataset the model was trained on')
     parser.add_argument('--save_folder', help='The folder to save the results of the analysis')
     parser.add_argument('--seed', help='set the seed of the run.')
-    parser.add_argument('--eps', help='set the eps level')
+    parser.add_argument('--ep', help='set the eps level')
     args = parser.parse_args()
 
     dataset_name = args.dataset_name  # cifar or mnist

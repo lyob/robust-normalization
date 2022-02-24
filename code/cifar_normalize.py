@@ -206,6 +206,9 @@ def main(save_folder, model_name, seed, cluster, mode='train', normalize='nn', w
                 x_test_adv = attack.generate(x=x_test[:n_images], y=y_test[:n_images])
 
                 # save adversarial examples
+                save_path_eval = os.path.join(save_folder, 'adv_dataset', model_name)
+                if not os.path.exists(save_path_eval):
+                    os.makedirs(save_path_eval, exist_ok=True)
                 adv_save_name = os.path.join(save_path_eval, f'adv_examples-{save_name_base}-eps_{eps}.pkl')
                 pickle.dump(x_test_adv, open(adv_save_name, 'wb'))
 
@@ -215,6 +218,7 @@ def main(save_folder, model_name, seed, cluster, mode='train', normalize='nn', w
                 record[ep_idx] = accuracy
             saved_perf['perturbed'] = record
             
+            # save prediction performance
             eps = [str(i) for i in eps]
             save_path_eval = os.path.join(save_folder,'eval_models', model_name)
             if not os.path.exists(save_path_eval):

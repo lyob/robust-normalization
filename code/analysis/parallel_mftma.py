@@ -86,7 +86,7 @@ def import_trained_model(n, dataset_name):
 #%% create manifold dataset and extract activations
 
 # create the manifold dataset
-def create_manifold_dataset(model, dataset_name, model_name, eps=0):
+def create_manifold_dataset(model, dataset_name, model_name, ep=0):
     sampled_classes = 10
     examples_per_class = 50
      
@@ -101,10 +101,10 @@ def create_manifold_dataset(model, dataset_name, model_name, eps=0):
             x_test = x_test.transpose(0,3,1,2).astype(np.float32)
             test_dataset = (x_test, y_test)
         
-    elif eps in ['1.0', '2.0', '4.0', '6.0', '8.0']:
+    elif ep in ['1.0', '2.0', '4.0', '6.0', '8.0']:
         if dataset_name=="cifar":
             save_path = os.path.join('..', '..', 'results', 'cifar_regularize', 'adv_dataset', 'standard')
-            file_name = f'standard-normalize_{model_name}-wd_0.0005-seed_17-eps_{eps}.pkl'
+            file_name = f'standard-normalize_{model_name}-wd_0.0005-seed_17-eps_{ep}.pkl'
             load_file = os.path.join(save_path, file_name)
             test_dataset = pickle.load(open(load_file, 'rb'))
             x_test = test_dataset['x']
@@ -235,8 +235,8 @@ if __name__ == '__main__':
         model_name = normalize_methods
     print(f'normalization methods to be analyzed: {model_name}')
 
-    eps = args.eps
-    print(f'eps level to be analyzed: {eps}')
+    ep = args.ep
+    print(f'eps level to be analyzed: {ep}')
 
     seed_everything(int(args.seed))
 
@@ -251,7 +251,7 @@ if __name__ == '__main__':
         model = import_trained_model(m, dataset_name)
 
         print(f'creating manifold dataset for norm model {m}...')
-        activations = create_manifold_dataset(model, dataset_name, model_name=m, eps=eps)
+        activations = create_manifold_dataset(model, dataset_name, model_name=m, ep=ep)
         print('extracted layers:\n', list(activations.keys()))
 
         print(f'preparing norm model {m} for analysis...')

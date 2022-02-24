@@ -101,8 +101,7 @@ def create_manifold_dataset(model, dataset_name, model_name, eps=0):
             x_test = x_test.transpose(0,3,1,2).astype(np.float32)
             test_dataset = (x_test, y_test)
         
-    elif eps in [1.0, 2.0, 4.0, 6.0, 8.0]:
-        n = 'bn'
+    elif eps in ['1.0', '2.0', '4.0', '6.0', '8.0']:
         if dataset_name=="cifar":
             save_path = os.path.join('..', '..', 'results', 'cifar_regularize', 'adv_dataset', 'standard')
             file_name = f'standard-normalize_{model_name}-wd_0.0005-seed_17-eps_{eps}.pkl'

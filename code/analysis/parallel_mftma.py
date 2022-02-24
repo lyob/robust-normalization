@@ -232,7 +232,7 @@ if __name__ == '__main__':
 
     global device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    device = "cpu"
+    # device = "cpu"
     print(device)
 
     for m in model_name:

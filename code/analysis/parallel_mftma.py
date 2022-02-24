@@ -86,12 +86,12 @@ def import_trained_model(n, dataset_name):
 #%% create manifold dataset and extract activations
 
 # create the manifold dataset
-def create_manifold_dataset(model, dataset_name, model_name, ep=0):
+def create_manifold_dataset(model, dataset_name, model_name, ep="0"):
     sampled_classes = 10
     examples_per_class = 50
      
     # load dataset
-    if ep == 0:
+    if ep == "0":
         if dataset_name=="mnist":
             (x_train, y_train), (x_test, y_test), min_pixel_value, max_pixel_value = load_mnist()
             x_test = np.swapaxes(x_test, 1, 3).astype(np.float32)
@@ -216,7 +216,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset_name', help='The dataset the model was trained on')
     parser.add_argument('--save_folder', help='The folder to save the results of the analysis')
     parser.add_argument('--seed', help='set the seed of the run.')
-    parser.add_argument('--ep', help='set the eps level')
+    parser.add_argument('--eps', help='set the eps level')
     args = parser.parse_args()
 
     dataset_name = args.dataset_name  # cifar or mnist
@@ -235,8 +235,8 @@ if __name__ == '__main__':
         model_name = normalize_methods
     print(f'normalization methods to be analyzed: {model_name}')
 
-    ep = args.ep
-    print(f'eps level to be analyzed: {ep}')
+    eps = args.eps
+    print(f'eps level to be analyzed: {eps}')
 
     seed_everything(int(args.seed))
 
@@ -251,7 +251,7 @@ if __name__ == '__main__':
         model = import_trained_model(m, dataset_name)
 
         print(f'creating manifold dataset for norm model {m}...')
-        activations = create_manifold_dataset(model, dataset_name, model_name=m, ep=ep)
+        activations = create_manifold_dataset(model, dataset_name, model_name=m, ep=eps)
         print('extracted layers:\n', list(activations.keys()))
 
         print(f'preparing norm model {m} for analysis...')

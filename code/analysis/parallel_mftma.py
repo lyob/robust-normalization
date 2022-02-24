@@ -83,23 +83,10 @@ def import_trained_model(n, dataset_name):
     return model
 
 
-#%%
-# n = 'bn'
-# eps = 1.0 
-
-# save_path = os.path.join('..', '..', 'results', 'cifar_regularize', 'adv_dataset', 'standard')
-# file_name = f'adv_examples-standard-normalize_{n}-wd_0.0005-seed_17-eps_{eps}.pkl'
-# load_file = os.path.join(save_path, file_name)
-# with open(load_file, 'rb') as f:
-#     metrics = pickle.load(f)
-#     print(metrics.shape)
-
-# # shape is (10000, 3, 32, 32) -- I don't have the labels though.
-
 #%% create manifold dataset and extract activations
 
 # create the manifold dataset
-def create_manifold_dataset(model, dataset_name, eps=0):
+def create_manifold_dataset(model, dataset_name, model_name, eps=0):
     sampled_classes = 10
     examples_per_class = 50
      
@@ -114,11 +101,18 @@ def create_manifold_dataset(model, dataset_name, eps=0):
             x_test = x_test.transpose(0,3,1,2).astype(np.float32)
             test_dataset = (x_test, y_test)
         
-        # transpose dataset from tuple of arrays into array of tuples
-        test_dataset = list(zip(x_test, y_test))
-    elif eps in []:
+    elif eps in [1.0, 2.0, 4.0, 6.0, 8.0]:
+        n = 'bn'
         if dataset_name=="cifar":
-            print('no')
+            save_path = os.path.join('..', '..', 'results', 'cifar_regularize', 'adv_dataset', 'standard')
+            file_name = f'standard-normalize_{model_name}-wd_0.0005-seed_17-eps_{eps}.pkl'
+            load_file = os.path.join(save_path, file_name)
+            test_dataset = pickle.load(open(load_file, 'rb'))
+            x_test = test_dataset['x']
+            y_test = test_dataset['y']
+
+    # transpose dataset from tuple of arrays into array of tuples
+    test_dataset = list(zip(x_test, y_test))
 
     data = make_manifold_data(test_dataset, sampled_classes, examples_per_class, seed=0)
     data = [d.to(device) for d in data]
@@ -223,6 +217,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset_name', help='The dataset the model was trained on')
     parser.add_argument('--save_folder', help='The folder to save the results of the analysis')
     parser.add_argument('--seed', help='set the seed of the run.')
+    parser.add_argument('--eps', help='set the eps level')
     args = parser.parse_args()
 
     dataset_name = args.dataset_name  # cifar or mnist
@@ -241,6 +236,9 @@ if __name__ == '__main__':
         model_name = normalize_methods
     print(f'normalization methods to be analyzed: {model_name}')
 
+    eps = args.eps
+    print(f'eps level to be analyzed: {eps}')
+
     seed_everything(int(args.seed))
 
 
@@ -250,17 +248,17 @@ if __name__ == '__main__':
     print(device)
 
     for m in model_name:
-        print(f'importing the {m} model')
+        print(f'importing the {m} normalization model')
         model = import_trained_model(m, dataset_name)
 
-        print(f'creating manifold dataset for model {m}...')
-        activations = create_manifold_dataset(model, dataset_name)
+        print(f'creating manifold dataset for norm model {m}...')
+        activations = create_manifold_dataset(model, dataset_name, model_name=m, eps=eps)
         print('extracted layers:\n', list(activations.keys()))
 
-        print(f'preparing model {m} for analysis...')
+        print(f'preparing norm model {m} for analysis...')
         activations = prepare_data_for_analysis(activations)
 
-        print(f'running analysis on model {m}...')
+        print(f'running analysis on norm model {m}...')
         metrics = analyze(activations)
         
         print('saving the results of the analysis...')

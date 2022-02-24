@@ -23,6 +23,7 @@ from art.utils import load_mnist, load_cifar10
 from robustness import attacker
 from robustness.datasets import CIFAR
 import dill
+import pickle
 
 #%% import trained model and select normalization method
 
@@ -88,6 +89,22 @@ for idx, norm in enumerate(normalize_method):
     model = import_trained_model(norm, dataset_name)
     models[norm] = model
 
+#%%
+n = 'bn'
+eps = 1.0 
+
+save_path = os.path.join('..', '..', 'results', 'cifar_regularize', 'adv_dataset', 'standard')
+file_name = f'standard-normalize_{n}-wd_0.0005-seed_17-eps_{eps}.pkl'
+load_file = os.path.join(save_path, file_name)
+with open(load_file, 'rb') as f:
+    metrics = pickle.load(f)
+    x = metrics['x']
+    y = metrics['y']
+    print(x.shape)
+    print(y.shape)
+
+# shape is (10000, 3, 32, 32) -- I don't have the labels though.
+
 #%% create manifold dataset and extract activations
 
 # reload(mftma)
@@ -98,27 +115,40 @@ from mftma.utils.make_manifold_data import make_manifold_data
 from mftma.utils.activation_extractor import extractor
 
 # create the manifold dataset
-def create_manifold_dataset(model, dataset_name):
+def create_manifold_dataset(model, dataset_name, eps=1.0):
     sampled_classes = 10
     examples_per_class = 50
      
     # load dataset
-    if dataset_name=="mnist":
-        (x_train, y_train), (x_test, y_test), min_pixel_value, max_pixel_value = load_mnist()
-        x_test = np.swapaxes(x_test, 1, 3).astype(np.float32)
-        test_dataset = (x_test, y_test)
-    elif dataset_name=="cifar":
-        (x_train, y_train), (x_test, y_test), min_pixel_value, max_pixel_value = load_cifar10()
-        x_test = x_test.transpose(0,3,1,2).astype(np.float32)
-        test_dataset = (x_test, y_test)
-        print('xtrain shape', x_test.shape)
-        print('ytrain shape', y_test.shape)
-        print('ytrain\n', y_test[0])
-    
+    if eps==0:
+        if dataset_name=="mnist":
+            (x_train, y_train), (x_test, y_test), min_pixel_value, max_pixel_value = load_mnist()
+            x_test = np.swapaxes(x_test, 1, 3).astype(np.float32)
+            test_dataset = (x_test, y_test)
+        elif dataset_name=="cifar":
+            (x_train, y_train), (x_test, y_test), min_pixel_value, max_pixel_value = load_cifar10()
+            x_test = x_test.transpose(0,3,1,2).astype(np.float32)
+            test_dataset = (x_test, y_test)
+            print('xtrain shape', x_test.shape)
+            print('ytrain shape', y_test.shape)
+            print('ytrain\n', y_test[0])
+        
+    elif eps in [1.0, 2.0, 4.0, 6.0, 8.0]:
+        n = 'bn'
+        if dataset_name=="cifar":
+            save_path = os.path.join('..', '..', 'results', 'cifar_regularize', 'adv_dataset', 'standard')
+            file_name = f'standard-normalize_{n}-wd_0.0005-seed_17-eps_{eps}.pkl'
+            load_file = os.path.join(save_path, file_name)
+            test_dataset = pickle.load(open(load_file, 'rb'))
+            x_test = test_dataset['x']
+            y_test = test_dataset['y']
+            print('xtrain shape', x_test.shape)
+            print('ytrain shape', y_test.shape)
+            print('ytrain\n', y_test[0])
+
     # transpose dataset from tuple of arrays into array of tuples
     test_dataset = list(zip(x_test, y_test))
-    print('train_dataset shape', test_dataset[0][0])
-    # print(train_dataset[0][0].shape)
+    print('train_dataset shape', test_dataset[0][0].shape)
 
     data = make_manifold_data(test_dataset, sampled_classes, examples_per_class, seed=0)
     data = [d.to(device) for d in data]

@@ -5,7 +5,7 @@ import os
 import pickle
 
 # import data
-load_path = os.path.join('..', 'results', 'mftma', 'cifar')
+load_path = os.path.join('..', 'results', 'mftma', 'cifar', 'eps-0_v1')
 normalize = ["lrnb", "lrns", "gn", "ln", "nn", "lrnc", "in", "bn"]
 # normalize = ['bn']
 
@@ -18,7 +18,7 @@ for n in normalize:
     metrics = {}
     with open(load_file, 'rb') as f:
         metrics = pickle.load(f)
-        print(metrics)
+        # print(metrics)
 
     norms[n] = metrics
 

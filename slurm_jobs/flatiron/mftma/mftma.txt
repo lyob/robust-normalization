@@ -1,7 +1,0 @@
-/mnt/home/blyo1/ceph/syLab/robust-normalization/results/mftma/ cifar 17 nn 2.0
-/mnt/home/blyo1/ceph/syLab/robust-normalization/results/mftma/ cifar 17 bn 2.0
-/mnt/home/blyo1/ceph/syLab/robust-normalization/results/mftma/ cifar 17 ln 2.0
-/mnt/home/blyo1/ceph/syLab/robust-normalization/results/mftma/ cifar 17 in 2.0
-/mnt/home/blyo1/ceph/syLab/robust-normalization/results/mftma/ cifar 17 gn 2.0
-/mnt/home/blyo1/ceph/syLab/robust-normalization/results/mftma/ cifar 17 lrnc 2.0
-/mnt/home/blyo1/ceph/syLab/robust-normalization/results/mftma/ cifar 17 lrns 2.0

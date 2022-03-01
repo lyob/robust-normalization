@@ -16,8 +16,7 @@ from art.estimators.classification import PyTorchClassifier
 import argparse
 
 from helpers import accuracy, perturb_stimuli, construct_manifold_stimuli, Hook, model_layer_map, MFTMA_analyze_activations
-
-sys.path.append('..')
+# sys.path.append('..')
 os.chdir('..')
 from mnist_layer_norm import Net
 
@@ -48,9 +47,9 @@ def load_model(norm_method):
 
 
 # load model state and dataset
-def load_model_state(normalize, model):
+def load_model_state(norm_method, model):
     # load the model
-    model_path = os.path.abspath(os.path.join('..', '..', 'results', 'mnist_regularize', 'trained_models', 'standard', f'standard-lr_0.01-wd_0.0005-seed_17-normalize_{normalize}.pth'))
+    model_path = os.path.abspath(os.path.join('..', '..', 'results', 'mnist_regularize', 'trained_models', 'standard', f'standard-lr_0.01-wd_0.0005-seed_17-normalize_{norm_method}.pth'))
     model.load_state_dict(torch.load(model_path, map_location=device))
 
     lr = 0.01
@@ -175,6 +174,7 @@ if __name__ == "__main__":
     parser.add_argument('--seed', help='set the seed of the run.')
     parser.add_argument('--eps', help='set the eps level')
     parser.add_argument('--num_images', help='number of images to use from test dataset')
+    parser.add_argument('--save_folder', help='The folder to save the results of the analysis')
     args = parser.parse_args()
 
     assert args.norm_method in ['bn', 'in', 'ln', 'gn', 'nn', 'lrnc', 'lrns', 'lrnb'], 'Must input a valid norm method.'
@@ -193,9 +193,9 @@ if __name__ == "__main__":
 
     # determine the type of adversarial examples to use for constructing the manifolds
     if args.eps:
-        eps = {args.eps}/255
+        eps = float(args.eps)/255
     else:
-        eps = 8/255
+        eps = 8./255
     max_iter = 1
     eps_step_factor = 1
     eps_step = eps / eps_step_factor
@@ -206,13 +206,15 @@ if __name__ == "__main__":
     dataset = 'MNIST'
 
     # where to save results and how to name the files
-    results_dir = 'results'
-    #TODO: add norm method to the file name, and maybe change the eps value
+    if args.save_folder:
+        results_dir = args.save_folder
+    else:
+        results_dir = 'results'
     file_name = f'model_{model_name}-manifold_{manifold_type}-norm_{norm_method}-eps_{args.eps}-iter_{max_iter}-random_{random}-seed_{seed}.csv'
 
     global device
-    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    device = "cpu"
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # device = "cpu"
 
     # x_test, y_test, _, _ = load_dataset()
     model = load_model(norm_method)

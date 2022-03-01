@@ -1,5 +1,0 @@
-Line 7
-/mnt/home/blyo1/ceph/syLab/robust-normalization/results/ standard 17 train 0.01 0.0005 lrns 0.01_0.03_0.05_0.07_0.1_0.15_0.2
-we are running!
-Save folder: /mnt/home/blyo1/ceph/syLab/robust-normalization/results/mnist_regularize, model_name: standard, seed: 17, mode: train, lr: 0.01, wd: 0.0005, normalize: lrns
-Accuracy on benign test examples: 97.3%

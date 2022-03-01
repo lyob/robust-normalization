@@ -1,4 +1,5 @@
 import os
+import sys
 
 import torch
 import numpy as np
@@ -10,9 +11,10 @@ from art.attacks.evasion import ProjectedGradientDescent
 from art.estimators.classification import PyTorchClassifier, EnsembleClassifier
 from art.utils import load_cifar10
 
+sys.path.append('..')
 from mftma.manifold_analysis_correlation import manifold_analysis_corr
 from mftma.alldata_dimension_analysis import alldata_dimension_analysis
-# from mftma.manifold_simcap_analysis import manifold_simcap_analysis
+sys.path.append('exemplar-manifolds/')
 
 def MFTMA_analyze_adversarial_representations(args):
     """

@@ -129,7 +129,7 @@ class ArgsDict(object):
         for key in args_dict:
             setattr(self, key, args_dict[key])
 
-def load_model(model_name, loc):
+def load_model(model_name, loc, n='nn'):
     model_locations = {
         'CIFAR_ResNet18': 'models/model_Resnet18-nm_None-dataset_cifar10-epoch_150.ckpt',
         'CIFAR_VOneResNet18': 'models/model_VOneResnet18-nm_gn-nl_0.07-dataset_cifar10-epoch_150.ckpt',
@@ -290,7 +290,7 @@ class Hook():
         self.hook.remove()
 
 # layers to collect features from, and names
-def model_layer_map(name, model):
+def model_layer_map(name, model, norm='nn'):
     if name == 'CIFAR_ResNet18':
         return {
             '1.conv1'  : model.conv1,
@@ -308,6 +308,27 @@ def model_layer_map(name, model):
             '4.block3'           : model.layer3,
             '5.block4'           : model.layer4,
             '6.linear'           : model.linear
+        }
+    elif name == 'MNIST_ConvNet':
+        norms = {
+            'bn'   : {'2.norm': model.bn1, '5.norm': model.bn2}, 
+            'ln'   : {'2.norm': model.ln1, '5.norm': model.ln2},
+            'in'   : {'2.norm': model.in1, '5.norm': model.in2},
+            'gn'   : {'2.norm': model.gn1, '5.norm': model.gn2},
+            'nn'   : {'2.norm': model.norm_dict1['nn'], '5.norm': model.norm_dict2['nn']},
+            'lrnc' : {'2.norm': model.norm_dict1['lrnc'], '5.norm': model.norm_dict2['lrnc']},
+            'lrns' : {'2.norm': model.norm_dict1['lrns'], '5.norm': model.norm_dict2['lrns']},
+            'lrnb' : {'2.norm': model.norm_dict1['lrnb'], '5.norm': model.norm_dict2['lrnb']},
+            }
+
+        return {
+            '1.conv1'  : model.conv_1,
+            '2.norm'   : norms[norm]['2.norm'],
+            '3.relu'   : model.relu,
+            '4.conv2'  : model.conv_2,
+            '5.norm'   : norms[norm]['5.norm'],
+            '6.relu'   : model.relu,
+            '7.linear' : model.fc_1
         }
 
 def MFTMA_analyze_activations(features_dict, P, M, N, kappa=0, NT=100, SIMCAP=False, seed=0, verbose=False):

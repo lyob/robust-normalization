@@ -139,7 +139,7 @@ def extract_representations(model_name, model, normalize, X_adv):
 
 
 # run MFTMA analysis on all features in the features_dict -- this can take a few minutes!
-def run_mftma(features_dict, P, M, N, seed, model_name, manifold_type, clean_accuracy, adv_accuracy, eps, max_iter, random):
+def run_mftma(features_dict, P, M, N, seed, model_name, manifold_type, norm_method, clean_accuracy, adv_accuracy, eps, max_iter, random):
     print('running mftma...')
 
     df = MFTMA_analyze_activations(features_dict, P, M, N=N, seed=seed)
@@ -147,6 +147,7 @@ def run_mftma(features_dict, P, M, N, seed, model_name, manifold_type, clean_acc
     ## add additional meta data
     df['model'] = model_name
     df['manifold_type'] = manifold_type
+    df['norm_method'] = norm_method
     df['clean_accuracy'] = clean_accuracy
     df['adv_accuracy'] = adv_accuracy
     df['eps'] = eps
@@ -177,6 +178,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     assert args.norm_method in ['bn', 'in', 'ln', 'gn', 'nn', 'lrnc', 'lrns', 'lrnb'], 'Must input a valid norm method.'
+    norm_method = args.norm_method
 
     if args.seed:
         seed = int(args.seed)
@@ -205,19 +207,20 @@ if __name__ == "__main__":
 
     # where to save results and how to name the files
     results_dir = 'results'
-    file_name = f'model_{model_name}-manifold_{manifold_type}-eps_{eps}-iter_{max_iter}-random_{random}-seed_{seed}.csv'
+    #TODO: add norm method to the file name, and maybe change the eps value
+    file_name = f'model_{model_name}-manifold_{manifold_type}-norm_{norm_method}-eps_{args.eps}-iter_{max_iter}-random_{random}-seed_{seed}.csv'
 
     global device
     # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     device = "cpu"
 
     # x_test, y_test, _, _ = load_dataset()
-    model = load_model(args.norm_method)
-    classifier = load_model_state(args.norm_method, model)
+    model = load_model(norm_method)
+    classifier = load_model_state(norm_method, model)
     clean_acc = get_clean_accuracy(classifier)
     X_adv, adv_accuracy = create_manifold_stimuli(classifier, manifold_type, P, M, eps, eps_step_factor, max_iter, random)
-    features_dict = extract_representations(model_name, model, args.norm_method, X_adv)
-    df = run_mftma(features_dict, P, M, N, seed, model_name, manifold_type, clean_acc, adv_accuracy, eps, max_iter, random)
+    features_dict = extract_representations(model_name, model, norm_method, X_adv)
+    df = run_mftma(features_dict, P, M, N, seed, model_name, manifold_type, norm_method, clean_acc, adv_accuracy, eps, max_iter, random)
     save_results(df, results_dir, file_name)
 
 

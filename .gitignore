@@ -15,6 +15,9 @@ datasets/*
 results/*
 # results/cifar_regularize/
 # results/mnist_regularize/
+*/.ipynb_checkpoints/
+*/__pycache__/
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

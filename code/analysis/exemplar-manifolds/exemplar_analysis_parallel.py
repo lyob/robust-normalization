@@ -1,23 +1,19 @@
 #%% import packages
 import os
 import sys
-from glob import glob
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 
 from art.utils import load_mnist
 from art.estimators.classification import PyTorchClassifier
 import argparse
 
 from helpers import accuracy, perturb_stimuli, construct_manifold_stimuli, Hook, model_layer_map, MFTMA_analyze_activations
-# sys.path.append('..')
-os.chdir('..')
+
+os.chdir('../..')
 from mnist_layer_norm import Net
 
 
@@ -120,6 +116,8 @@ def extract_representations(model_name, model, normalize, X_adv):
         print(f'Adding hook to layer: {layer_name}')
         hooks[layer_name] = Hook(module, layer_name)
 
+    print(type(X_adv))
+
     # run the perturbed stimuli through the model
     Y_hat = model(torch.tensor(X_adv))
 
@@ -201,6 +199,11 @@ if __name__ == "__main__":
     eps_step = eps / eps_step_factor
     random = False # adversarial perturbation if false, random perturbation if true
     
+    if args.num_images:
+        num_images = args.num_images
+    else:
+        num_images = None
+
     # model and dataset details
     model_name = 'MNIST_ConvNet'
     dataset = 'MNIST'
@@ -227,3 +230,4 @@ if __name__ == "__main__":
 
 
         
+# %%

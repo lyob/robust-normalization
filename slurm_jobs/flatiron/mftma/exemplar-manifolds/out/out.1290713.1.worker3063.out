@@ -1,0 +1,8 @@
+Line 1
+/mnt/home/blyo1/ceph/syLab/robust-normalization/code/analysis/exemplar-manifolds/results/ 1 nn 0.0
+EP is 0.0
+NORM_METHOD is nn
+SEED is 1
+we are running!
+Accuracy on benign test examples: 97.49%
+constructing manifold stimuli...

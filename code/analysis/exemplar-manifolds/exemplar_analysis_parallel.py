@@ -1,4 +1,4 @@
-#%% import packages
+# import packages
 import os
 import sys
 
@@ -13,7 +13,7 @@ import argparse
 
 from helpers import accuracy, perturb_stimuli, construct_manifold_stimuli, Hook, model_layer_map, MFTMA_analyze_activations
 
-os.chdir('../..')
+os.chdir('..')
 from mnist_layer_norm import Net
 
 
@@ -27,7 +27,6 @@ def load_dataset():
 
     # print('x_train shape', x_train.shape)
     # print('x_test shape', x_test.shape)
-
     return x_test, y_test, min_pixel_value, max_pixel_value
 
 
@@ -99,11 +98,11 @@ def create_manifold_stimuli(classifier, manifold_type, P, M, eps, eps_step_facto
     )
 
     print(f'stimuli shape: {X_adv.shape}')
+    print(f'X_adv type: {type(X_adv)}')
 
     # get adversarial accuracy
     adv_accuracy = accuracy(classifier.predict(X_adv), Y)
     print(f"Accuracy on adversarial test examples: {adv_accuracy * 100}")
-
     return X_adv, adv_accuracy
 
 
@@ -116,10 +115,8 @@ def extract_representations(model_name, model, normalize, X_adv):
         print(f'Adding hook to layer: {layer_name}')
         hooks[layer_name] = Hook(module, layer_name)
 
-    print(type(X_adv))
-
     # run the perturbed stimuli through the model
-    Y_hat = model(torch.tensor(X_adv))
+    Y_hat = model(torch.tensor(X_adv).to(device))
 
     # put activations and pixels into a dictionary with layer names
     features_dict = {'0.pixels' : X_adv}
@@ -131,7 +128,6 @@ def extract_representations(model_name, model, normalize, X_adv):
     for k, v in features_dict_description.items():
         print(k, v)
     print('---')
-
     return features_dict
 
 
@@ -151,7 +147,6 @@ def run_mftma(features_dict, P, M, N, seed, model_name, manifold_type, norm_meth
     df['eps_step'] = eps_step
     df['max_iter'] = max_iter
     df['random'] = random
-
     return df
 
 
@@ -216,8 +211,8 @@ if __name__ == "__main__":
     file_name = f'model_{model_name}-manifold_{manifold_type}-norm_{norm_method}-eps_{args.eps}-iter_{max_iter}-random_{random}-seed_{seed}.csv'
 
     global device
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # device = "cpu"
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = "cpu"
 
     # x_test, y_test, _, _ = load_dataset()
     model = load_model(norm_method)
@@ -227,7 +222,3 @@ if __name__ == "__main__":
     features_dict = extract_representations(model_name, model, norm_method, X_adv)
     df = run_mftma(features_dict, P, M, N, seed, model_name, manifold_type, norm_method, clean_acc, adv_accuracy, eps, max_iter, random)
     save_results(df, results_dir, file_name)
-
-
-        
-# %%

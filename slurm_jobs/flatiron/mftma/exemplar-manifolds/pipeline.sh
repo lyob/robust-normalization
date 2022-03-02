@@ -2,10 +2,11 @@
 PARAM_FILE="mftma.txt"
 
 SAVE_FOLDER="/mnt/home/blyo1/ceph/syLab/robust-normalization/code/analysis/exemplar-manifolds/results/"
-SEEDS=("1")
+SEEDS=("2")
 NORM_METHODS=("nn" "bn" "ln" "in" "gn" "lrnc" "lrns" "lrnb")
-# NORM_METHODS=("lrnb")
-EPS=("2")
+# NORM_METHODS=("nn" "bn" "ln" "in" "gn" "lrns")
+# NORM_METHODS=("lrnc")
+EPS=("0.0" "1.0" "2.0" "4.0" "6.0")
 
 > ${PARAM_FILE}
 for SEED in ${SEEDS[@]};do
@@ -30,7 +31,7 @@ while read line; do
         if [ "$(expr ${LINE_COUNT} % 100)" = "0" ]
         then
                 echo "New Array For Parameters from ${START_INDEX} to ${LINE_COUNT}"
-                sbatch --array=1-100 normalize.sbatch ${ARRAY_INDEX} ${PARAM_FILE}
+                sbatch --array=1-100 submit_jobs.sbatch ${ARRAY_INDEX} ${PARAM_FILE}
                 START_INDEX=$(expr ${LINE_COUNT} + 1)
                 ARRAY_INDEX=$(expr ${ARRAY_INDEX} + 1)
         fi
@@ -45,7 +46,6 @@ then
 	echo ${START_INDEX}
         DIFF=$(expr ${LINE_COUNT} - ${START_INDEX} + 1)
         echo "New Array For Parameters from ${START_INDEX} to ${LINE_COUNT}"
-        #sbatch --array=1-${DIFF} --mem 16G normalize.sbatch ${ARRAY_INDEX} ${PARAM_FILE}
 	sbatch --array=1-${DIFF} submit_jobs.sbatch ${ARRAY_INDEX} ${PARAM_FILE}
 fi
 

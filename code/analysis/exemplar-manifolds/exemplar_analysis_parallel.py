@@ -87,15 +87,18 @@ def create_manifold_stimuli(classifier, manifold_type, P, M, eps, eps_step_facto
 
     x_test, y_test, _, _ = load_dataset()
     X, Y = construct_manifold_stimuli(x_test, y_test, manifold_type, P=P, M=M)
-    X_adv = perturb_stimuli(
-        X, 
-        Y, 
-        classifier, 
-        eps=eps, 
-        eps_step_factor=eps_step_factor, 
-        max_iter=max_iter, 
-        random=random
-    )
+    if (eps == 0):
+        X_adv = X
+    else:
+        X_adv = perturb_stimuli(
+            X, 
+            Y, 
+            classifier, 
+            eps=eps, 
+            eps_step_factor=eps_step_factor, 
+            max_iter=max_iter, 
+            random=random 
+        )
 
     print(f'stimuli shape: {X_adv.shape}')
     print(f'X_adv type: {type(X_adv)}')

@@ -57,9 +57,8 @@ x_train.shape, x_test.shape
 
 #%% define the MNIST model
 
-sys.path.append('..')
-os.chdir('..')
-
+# sys.path.append('..')
+os.chdir('../..')
 from mnist_layer_norm import Net
 simple_channels = 16
 complex_channels = 16
@@ -78,7 +77,7 @@ global device
 device = "cpu"
 
 # load the model
-model_path = os.path.abspath(os.path.join('..', '..', 'results', 'mnist_regularize', 'trained_models', 'standard', f'standard-lr_0.01-wd_0.0005-seed_17-normalize_{normalize}.pth'))
+model_path = os.path.abspath(os.path.join('..', 'results', 'mnist_regularize', 'trained_models', 'standard', f'standard-lr_0.01-wd_0.0005-seed_17-normalize_{normalize}.pth'))
 model.load_state_dict(torch.load(model_path, map_location=device))
 
 
@@ -113,6 +112,8 @@ print("Accuracy on benign test examples: {}%".format(clean_accuracy * 100))
 from helpers import perturb_stimuli, construct_manifold_stimuli
 
 X, Y = construct_manifold_stimuli(x_test, y_test, manifold_type, P=P, M=M)
+print(X.shape)
+print(type(X))
 X_adv = perturb_stimuli(
     X, 
     Y, 
@@ -124,6 +125,7 @@ X_adv = perturb_stimuli(
 )
 
 print(f'stimuli shape: {X_adv.shape}')
+print(type(X_adv))
 
 # get adversarial accuracy
 adv_accuracy = accuracy(classifier.predict(X_adv), Y)

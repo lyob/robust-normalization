@@ -189,9 +189,9 @@ if __name__ == "__main__":
 
     # determine the type of adversarial examples to use for constructing the manifolds
     if args.eps:
-        eps = float(args.eps)/255
+        eps = float(args.eps)
     else:
-        eps = 8./255
+        eps = 0
     max_iter = 1
     eps_step_factor = 1
     eps_step = eps / eps_step_factor
@@ -214,8 +214,8 @@ if __name__ == "__main__":
     file_name = f'model_{model_name}-manifold_{manifold_type}-norm_{norm_method}-eps_{args.eps}-iter_{max_iter}-random_{random}-seed_{seed}.csv'
 
     global device
-    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    device = "cpu"
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # device = "cpu"
 
     # x_test, y_test, _, _ = load_dataset()
     model = load_model(norm_method)

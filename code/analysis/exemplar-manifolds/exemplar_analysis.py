@@ -26,7 +26,7 @@ N = 2000 # maximum number of features to use
 
 # determine the type of adversarial examples to use for constructing the manifolds
 eps = 8/255
-eps = 0
+# eps = 0
 max_iter = 1
 eps_step_factor = 1
 eps_step = eps / eps_step_factor

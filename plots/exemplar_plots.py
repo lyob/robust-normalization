@@ -10,13 +10,14 @@ import numpy as np
 #%% import data
 results_dir = os.path.join('..', 'code', 'analysis', 'exemplar-manifolds', 'results')
 dataset_name = 'MNIST'
-model_name = 'ConvNet'
-iter_val = 1
-random = False
-seed = 0
+## unused parameters
+# model_name = 'ConvNet'
+# iter_val = 1
+# random = False
+# seed = 0
 
 files = [y for x in os.walk(results_dir) for y in glob(os.path.join(x[0], f'*{dataset_name}*'))]
-print(files)
+# print(files)
 df = pd.concat([pd.read_csv(f) for f in files])
 print(df['norm_method'])
 
@@ -31,8 +32,9 @@ eps = float(eps_val)/255
 #%% plot the data of different norms for a single epsilon value, or a single norm at different epsilon values
 def plot_layerwise(df, measures, manifold_type, eps=1/255, norm_method=None):
     # eps or norm_method -- one must have a value
-    assert (eps and norm_method) == None, 'One out of `eps` or `norm_method` must be None.'
-    assert eps != None or norm_method != None, "Specify the value of either `eps` or `norm_method`."
+    condition1 = (eps != None or norm_method != None)
+    condition2 = (eps == None or norm_method == None)
+    assert condition1 and condition2, "The value of either `eps` or `norm_method` must be specified. One (and not the other) must equal `None`."
     
     fig, axes = plt.subplots(nrows=len(measures), ncols=1, figsize=(12,4*len(measures)))
 

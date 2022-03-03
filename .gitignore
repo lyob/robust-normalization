@@ -7,14 +7,17 @@
 slurm_jobs/**/mnist_param.txt
 slurm_jobs/**/mftma.txt
 slurm_jobs/**/cifar_param.txt
+
 slurm_jobs/**/outputs/
 slurm_jobs/**/errors/
 slurm_jobs/**/err/
 slurm_jobs/**/out/
+*.err
+*.out
+
 datasets/*
 results/*
-# results/cifar_regularize/
-# results/mnist_regularize/
+
 */.ipynb_checkpoints/
 */__pycache__/
 

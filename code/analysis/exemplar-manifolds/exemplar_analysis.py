@@ -26,6 +26,7 @@ N = 2000 # maximum number of features to use
 
 # determine the type of adversarial examples to use for constructing the manifolds
 eps = 8/255
+eps = 0
 max_iter = 1
 eps_step_factor = 1
 eps_step = eps / eps_step_factor
@@ -114,15 +115,20 @@ from helpers import perturb_stimuli, construct_manifold_stimuli
 X, Y = construct_manifold_stimuli(x_test, y_test, manifold_type, P=P, M=M)
 print(X.shape)
 print(type(X))
-X_adv = perturb_stimuli(
-    X, 
-    Y, 
-    classifier, 
-    eps=eps, 
-    eps_step_factor=eps_step_factor, 
-    max_iter=max_iter, 
-    random=random
-)
+if (eps == 0):
+    print('eps is 0')
+    X_adv = X
+else:
+    print(f'eps is {eps}')
+    X_adv = perturb_stimuli(
+        X, 
+        Y, 
+        classifier, 
+        eps=eps, 
+        eps_step_factor=eps_step_factor, 
+        max_iter=max_iter, 
+        random=random
+    )
 
 print(f'stimuli shape: {X_adv.shape}')
 print(type(X_adv))
@@ -178,3 +184,5 @@ save_file = os.path.abspath(os.path.join('exemplar-manifolds', results_dir, file
 print(save_file)
 df.to_csv(save_file)
 
+
+# %%

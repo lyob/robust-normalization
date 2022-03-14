@@ -2,7 +2,7 @@
 PARAM_FILE="mftma.txt"
 
 SAVE_FOLDER="/mnt/home/blyo1/ceph/syLab/robust-normalization/code/analysis/exemplar-manifolds/results/"
-SEEDS=("1" "2" "3" "4" "5")
+SEEDS=("6" "7" "8" "9" "10")
 NORM_METHODS=("nn" "bn" "ln" "in" "gn" "lrnc" "lrns" "lrnb")
 # NORM_METHODS=("nn" "bn" "ln" "in" "gn" "lrns")
 # NORM_METHODS=("lrnc")

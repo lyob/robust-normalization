@@ -162,5 +162,5 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     eps = args.eps.split("_")    
-    save_folder = os.path.join(args.save_folder, 'mnist_regularize')
+    save_folder = os.path.join(args.save_folder, 'vone_frontend')
     main(save_folder, args.model_name, args.seed, args.learning_rate, args.weight_decay, args.mode, eps, args.normalize)

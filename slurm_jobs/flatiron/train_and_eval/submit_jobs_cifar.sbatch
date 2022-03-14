@@ -16,4 +16,4 @@ echo "Line ${FILE_LINE}"
 PARAMETERS=$(sed "${FILE_LINE}q;d" ${PARAMETER_FILE})
 echo ${PARAMETERS}
 
-bash normalize_cifar.sh ${PARAMETERS}
+bash run_code_cifar.sh ${PARAMETERS}

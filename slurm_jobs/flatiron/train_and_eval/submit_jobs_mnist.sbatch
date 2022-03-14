@@ -16,4 +16,4 @@ echo "Line ${FILE_LINE}"
 PARAMETERS=$(sed "${FILE_LINE}q;d" ${PARAMETER_FILE})
 echo ${PARAMETERS}
 
-bash normalize_mnist.sh ${PARAMETERS}
+bash run_code_mnist.sh ${PARAMETERS}

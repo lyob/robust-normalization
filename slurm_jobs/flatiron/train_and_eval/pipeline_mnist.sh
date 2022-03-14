@@ -45,7 +45,7 @@ while read line; do
         if [ "$(expr ${LINE_COUNT} % 100)" = "0" ]
         then
                 echo "New Array For Parameters from ${START_INDEX} to ${LINE_COUNT}"
-                sbatch --array=1-100 normalize_mnist.sbatch ${ARRAY_INDEX} ${PARAM_FILE}
+                sbatch --array=1-100 submit_jobs_mnist.sbatch ${ARRAY_INDEX} ${PARAM_FILE}
                 START_INDEX=$(expr ${LINE_COUNT} + 1)
                 ARRAY_INDEX=$(expr ${ARRAY_INDEX} + 1)
         fi
@@ -61,6 +61,6 @@ then
         DIFF=$(expr ${LINE_COUNT} - ${START_INDEX} + 1)
         echo "New Array For Parameters from ${START_INDEX} to ${LINE_COUNT}"
         #sbatch --array=1-${DIFF} --mem 16G normalize.sbatch ${ARRAY_INDEX} ${PARAM_FILE}
-	sbatch --array=1-${DIFF} normalize_mnist.sbatch ${ARRAY_INDEX} ${PARAM_FILE}
+	sbatch --array=1-${DIFF} submit_jobs_mnist.sbatch ${ARRAY_INDEX} ${PARAM_FILE}
 fi
 

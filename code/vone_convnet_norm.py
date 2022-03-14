@@ -60,7 +60,7 @@ def main(save_folder, model_name, seed, lr, wd, mode, eps, normalize):
         kernel_size=ksize, stride=2, padding=ksize//2)
         model = Net(conv_1, simple_channels + complex_channels, normalize=normalize)
 
-    if model_name == 'vone_convnet':
+    if model_name == 'vone_convnet-layer1_norm':
         model = VOneNet(simple_channels=simple_channels, complex_channels=complex_channels, normalize=normalize)
 
     criterion = nn.CrossEntropyLoss()
@@ -159,6 +159,8 @@ if __name__ == '__main__':
     parser.add_argument('--normalize', help='Normalize Type')
     parser.add_argument('--mode', help='Mode to run, choose from (train), (val), (extract)',default='train')
     parser.add_argument('--eps', help="Adversarial attack strength")
+
+    torch.autograd.set_detect_anomaly(True)
 
     args = parser.parse_args()
     eps = args.eps.split("_")    

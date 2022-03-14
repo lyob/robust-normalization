@@ -70,7 +70,7 @@ class ConvNetBackEnd(nn.Module):
 
             # same back-end
             x = self.conv_2(x)
-            x = self.norm_dict2[self.normalize](x)
+            # x = self.norm_dict2[self.normalize](x)
             x = self.relu(x)
             x = F.max_pool2d(x, 2, 2)
             x = torch.flatten(x, 1)

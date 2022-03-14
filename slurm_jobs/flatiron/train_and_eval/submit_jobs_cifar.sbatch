@@ -4,7 +4,7 @@
 #SBATCH -t 5:00:00
 #SBATCH --mem=16G
 #SBATCH --job-name=normalize
-#SBATCH --output ./outputs/cifar/out.%j.%a.%N.out -e ./errors/cifar/err.%j.%a.%N.err
+#SBATCH --output ./out/cifar/out.%j.%a.%N.out -e ./err/cifar/err.%j.%a.%N.err
 
 ARRAY_ID=$1
 PARAMETER_FILE=$2

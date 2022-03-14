@@ -4,7 +4,7 @@
 #SBATCH -t 5000
 #SBATCH --mem=16G
 #SBATCH --job-name=normalize
-#SBATCH --output ./outputs/mnist/out.%j.%a.%N.out -e ./errors/mnist/err.%j.%a.%N.err
+#SBATCH --output ./out/mnist/out.%j.%a.%N.out -e ./err/mnist/err.%j.%a.%N.err
 
 ARRAY_ID=$1
 PARAMETER_FILE=$2

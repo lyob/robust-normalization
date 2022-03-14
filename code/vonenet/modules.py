@@ -64,11 +64,20 @@ class VOneBlock(nn.Module):
         self.simple_conv_q1.initialize(sf=self.sf, theta=self.theta, sigx=self.sigx, sigy=self.sigy,
                                        phase=self.phase + np.pi / 2)
 
-        self.simple = nn.ReLU(inplace=True)
+        # self.simple = nn.ReLU(inplace=True)
+        self.simple = nn.ReLU()
         self.complex = Identity()
         self.gabors = Identity()
-        self.noise = nn.ReLU(inplace=True)
         self.output = Identity()
+
+    def gabors_f(self, x):
+        s_q0 = self.simple_conv_q0(x)
+        s_q1 = self.simple_conv_q1(x)
+        # c = self.complex(torch.sqrt(0.00001 + s_q0[:, self.simple_channels:, :, :] ** 2 + s_q1[:, self.simple_channels:, :, :] ** 2) / np.sqrt(2))
+        # s = self.simple(s_q0[:, 0:self.simple_channels, :, :])
+        s = self.simple(s_q0)
+        # return self.gabors(self.k_exc * torch.cat((s, c), 1))
+        return self.gabors(self.k_exc * s)
 
     def forward(self, x):
         # Gabor activations [Batch, out_channels, H/stride, W/stride]
@@ -76,11 +85,3 @@ class VOneBlock(nn.Module):
         # V1 Block output: (Batch, out_channels, H/stride, W/stride)
         x = self.output(x)
         return x
-
-    def gabors_f(self, x):
-        s_q0 = self.simple_conv_q0(x)
-        s_q1 = self.simple_conv_q1(x)
-        c = self.complex(torch.sqrt(s_q0[:, self.simple_channels:, :, :] ** 2 +
-                                    s_q1[:, self.simple_channels:, :, :] ** 2) / np.sqrt(2))
-        s = self.simple(s_q0[:, 0:self.simple_channels, :, :])
-        return self.gabors(self.k_exc * torch.cat((s, c), 1))

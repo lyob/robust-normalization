@@ -16,6 +16,7 @@ from art.estimators.classification import PyTorchClassifier, EnsembleClassifier
 from art.utils import load_mnist
 
 from mnist_layer_norm import Net
+from vonenet.vonenet import VOneNet
 
 folder_path = '../results'
 os.chdir(folder_path)
@@ -58,6 +59,9 @@ def main(save_folder, model_name, seed, lr, wd, mode, eps, normalize):
         conv_1 = nn.Conv2d(in_channels=1, out_channels=simple_channels+complex_channels, 
         kernel_size=ksize, stride=2, padding=ksize//2)
         model = Net(conv_1, simple_channels + complex_channels, normalize=normalize)
+
+    if model_name == 'vone_convnet':
+        model = VOneNet(simple_channels=simple_channels, complex_channels=complex_channels, normalize=normalize)
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=wd)

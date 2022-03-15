@@ -37,7 +37,7 @@ class ConvNetBackEnd(nn.Module):
     def __init__(self, in_channels, normalize=None):
         super(ConvNetBackEnd, self).__init__()
 
-        self.conv_2 = nn.Conv2d(in_channels= in_channels, out_channels=20, kernel_size=5, stride=1)
+        self.conv_2 = nn.Conv2d(in_channels=in_channels, out_channels=20, kernel_size=5, stride=1)
         self.fc_1 = nn.Linear(in_features=500, out_features=10)
         self.relu = nn.ReLU()
 
@@ -64,11 +64,12 @@ class ConvNetBackEnd(nn.Module):
         self.normalize = normalize
 
     def forward(self, x):
+            # remove first layer
             # x = self.conv_1(x)
             # x = self.norm_dict1[self.normalize](x)
             # x = self.relu(x)
 
-            # same back-end
+            # same back-end, but remove norm layer
             x = self.conv_2(x)
             # x = self.norm_dict2[self.normalize](x)
             x = self.relu(x)

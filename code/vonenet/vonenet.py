@@ -11,7 +11,7 @@ import numpy as np
 def VOneNet(sf_corr=0.75, sf_max=9, sf_min=0, rand_param=False, gabor_seed=0,
             simple_channels=16, complex_channels=16,
             k_exc=7,
-            model_arch='convnet', image_size=28, visual_degrees=8, ksize=7, stride=2, normalize='nn'):
+            model_arch='convnet', image_size=28, visual_degrees=8, ksize=7, stride=2, norm_method='nn'):
 
     out_channels = simple_channels + complex_channels
 
@@ -32,10 +32,9 @@ def VOneNet(sf_corr=0.75, sf_max=9, sf_min=0, rand_param=False, gabor_seed=0,
     theta = theta/180 * np.pi
     phase = phase / 180 * np.pi
 
-    vone_block = VOneBlock(sf=sf, theta=theta, sigx=sigx, sigy=sigy, phase=phase,
-                           k_exc=k_exc,
+    vone_block = VOneBlock(sf=sf, theta=theta, sigx=sigx, sigy=sigy, phase=phase, k_exc=k_exc,
                            simple_channels=simple_channels, complex_channels=complex_channels,
-                           ksize=ksize, stride=stride, input_size=image_size)
+                           ksize=ksize, stride=stride, input_size=image_size, norm_method=norm_method)
 
     if model_arch:
         # bottleneck = nn.Conv2d(out_channels, 20, kernel_size=5, stride=1, bias=False)
@@ -52,7 +51,7 @@ def VOneNet(sf_corr=0.75, sf_max=9, sf_min=0, rand_param=False, gabor_seed=0,
             model_back_end = CORnetSBackEnd()
         elif model_arch.lower() == 'convnet':
             print('Model: ', 'VOneConvNet')
-            model_back_end = ConvNetBackEnd(in_channels=out_channels, normalize=normalize)
+            model_back_end = ConvNetBackEnd(in_channels=out_channels)
 
         model = nn.Sequential(OrderedDict([
             ('vone_block', vone_block),

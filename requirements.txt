@@ -12,4 +12,4 @@ autograd
 cvxopt
 scipy
 pymanopt  # pip
-
+requests 

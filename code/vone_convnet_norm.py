@@ -21,14 +21,17 @@ from vonenet.vonenet import VOneNet
 folder_path = '../results'
 os.chdir(folder_path)
     
-def seed_everything(seed):
+def seed_everything(seed: int):
+    import random
     #initiate seed to try to make the result reproducible 
-    os.environ['PYTHONHASHSEED'] = str(seed)
-    np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
-    #torch.backends.cudnn.deterministic = True
-    #torch.backends.cudnn.benchmark = False
+    np.random.seed(seed)
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    torch.manual_seed(seed)
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
     
 def calculate_norm(model):
     norm_dict = {}
@@ -43,9 +46,8 @@ def calculate_norm(model):
                 norm_dict[name] = np.sum(np.sqrt(np.sum(param**2, axis=1)))
     return norm_dict
 
-def main(save_folder, model_name, seed, lr, wd, mode, eps, normalize):
-    print(f'Save folder: {save_folder}, model_name: {model_name}, seed: {seed}, mode: {mode}, lr: {lr}, wd: {wd}, normalize: {normalize}', flush=True)
-    seed_everything(seed)
+def main(save_folder, model_name, seed, lr, wd, mode, eps, norm_method):
+    print(f'Save folder: {save_folder}, model_name: {model_name}, seed: {seed}, mode: {mode}, lr: {lr}, wd: {wd}, norm_method: {norm_method}', flush=True)
     #load and process data
     (x_train, y_train), (x_test, y_test), min_pixel_value, max_pixel_value = load_mnist()
 
@@ -58,10 +60,10 @@ def main(save_folder, model_name, seed, lr, wd, mode, eps, normalize):
     if model_name == 'standard':
         conv_1 = nn.Conv2d(in_channels=1, out_channels=simple_channels+complex_channels, 
         kernel_size=ksize, stride=2, padding=ksize//2)
-        model = Net(conv_1, simple_channels + complex_channels, normalize=normalize)
+        model = Net(conv_1, simple_channels + complex_channels, normalize=norm_method)
 
     if model_name == 'vone_convnet-layer1_norm':
-        model = VOneNet(simple_channels=simple_channels, complex_channels=complex_channels, normalize=normalize)
+        model = VOneNet(simple_channels=simple_channels, complex_channels=complex_channels, norm_method=norm_method)
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=wd)
@@ -87,7 +89,7 @@ def main(save_folder, model_name, seed, lr, wd, mode, eps, normalize):
         save_path = os.path.join(save_folder, 'trained_models', model_name)
         if not os.path.exists(save_path):
             os.makedirs(save_path, exist_ok=True)
-        save_name = os.path.join(save_path, f'{model_name}-lr_{str(lr)}-wd_{str(wd)}-seed_{str(seed)}-normalize_{normalize}.pth')
+        save_name = os.path.join(save_path, f'{model_name}-lr_{str(lr)}-wd_{str(wd)}-seed_{str(seed)}-normalize_{norm_method}.pth')
         torch.save(classifier.model.state_dict(),save_name)
         record = {}
         record['accuracy'] = accuracy
@@ -99,7 +101,7 @@ def main(save_folder, model_name, seed, lr, wd, mode, eps, normalize):
     if mode == 'val':
         eps = [float(i) for i in eps]
         save_path = os.path.join(save_folder, 'trained_models', model_name)
-        save_name = os.path.join(save_path, f'{model_name}-lr_{str(lr)}-wd_{str(wd)}-seed_{str(seed)}-normalize_{normalize}.pth')
+        save_name = os.path.join(save_path, f'{model_name}-lr_{str(lr)}-wd_{str(wd)}-seed_{str(seed)}-normalize_{norm_method}.pth')
         model.load_state_dict(torch.load(save_name))
         model.eval()
         
@@ -140,7 +142,7 @@ def main(save_folder, model_name, seed, lr, wd, mode, eps, normalize):
         if not os.path.exists(save_path_eval):
             os.makedirs(save_path_eval, exist_ok=True)
         save_name_eval = os.path.join(save_path_eval, model_name + '-lr_' + str(lr) + '-wd_' + str(wd) + '-seed_' + str(seed) + 
-        '-normalize_' + normalize + '-eps_' + '_'.join(eps) + '.pkl')
+        '-normalize_' + norm_method + '-eps_' + '_'.join(eps) + '.pkl')
         
         to_save['perturbed'] = record
         save_file = open(save_name_eval, 'wb')
@@ -156,7 +158,7 @@ if __name__ == '__main__':
     parser.add_argument('--seed', help='Fix seed for reproducibility',type=int)
     parser.add_argument('--learning_rate', help='Learning rate to train model', type=float)
     parser.add_argument('--weight_decay', help='Amount of weight decay (L2 regularizer)', type=float)
-    parser.add_argument('--normalize', help='Normalize Type')
+    parser.add_argument('--normalize', help='norm_method Type')
     parser.add_argument('--mode', help='Mode to run, choose from (train), (val), (extract)',default='train')
     parser.add_argument('--eps', help="Adversarial attack strength")
 
@@ -165,4 +167,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
     eps = args.eps.split("_")    
     save_folder = os.path.join(args.save_folder, 'vone_frontend')
+    seed_everything(args.seed)
     main(save_folder, args.model_name, args.seed, args.learning_rate, args.weight_decay, args.mode, eps, args.normalize)

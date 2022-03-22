@@ -102,7 +102,7 @@ def main(save_folder, model_name, seed, lr, wd, mode, eps, norm_method):
         eps = [float(i) for i in eps]
         save_path = os.path.join(save_folder, 'trained_models', model_name)
         save_name = os.path.join(save_path, f'{model_name}-lr_{str(lr)}-wd_{str(wd)}-seed_{str(seed)}-normalize_{norm_method}.pth')
-        model.load_state_dict(torch.load(save_name))
+        model.load_state_dict(torch.load(save_name, map_location=device))
         model.eval()
         
         classifier = PyTorchClassifier(
@@ -113,7 +113,7 @@ def main(save_folder, model_name, seed, lr, wd, mode, eps, norm_method):
             input_shape=(1, 28, 28),
             nb_classes=10,)
         
-        n_images = 10000
+        n_images = 1000
         predictions = classifier.predict(x_test)
         accuracy = np.sum(np.argmax(predictions, axis=1) == np.argmax(y_test, axis=1)) / len(y_test)
         print("Accuracy on benign test examples: {}%".format(accuracy * 100), flush=True)
@@ -168,4 +168,8 @@ if __name__ == '__main__':
     eps = args.eps.split("_")    
     save_folder = os.path.join(args.save_folder, 'vone_frontend')
     seed_everything(args.seed)
+
+    global device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     main(save_folder, args.model_name, args.seed, args.learning_rate, args.weight_decay, args.mode, eps, args.normalize)

@@ -2,9 +2,9 @@
 PARAM_FILE="mnist_param.txt"
 
 SAVE_FOLDER="./"
-MODEL_NAME=("vone_convnet-layer1_norm") #mode of the model, can be "neural_noise", "standard" or "gaussian"
+MODEL_NAME=("vone_convnet-layer1_norm") #mode of the model, can be "standard" or "vone_convnet-layer1_norm"
 SEEDS=("1")
-MODES=("train") #mode can be 'train', 'val', 'extract', 'mft', 'pairwise', 'meanvar'
+MODES=("val") #mode can be 'train', 'val', 'extract', 'mft', 'pairwise', 'meanvar'
 LEARNING_RATES=("0.01")
 # WEIGHT_DECAYS=("0.0005" "0.0001" "0.001")
 WEIGHT_DECAYS=("0.0005")

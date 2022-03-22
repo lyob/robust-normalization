@@ -1,5 +1,6 @@
 #!/bin/bash
 #SBATCH -n 1 # one core
+#SBATCH -p gpu --gpus=1 -c 1 --gpus-per-task=1 --constraint=v100
 #SBATCH -t 5:00:00
 #SBATCH --mem=16G
 #SBATCH --job-name=normalize

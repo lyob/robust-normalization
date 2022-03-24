@@ -4,16 +4,22 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import os
 import pickle
+import pandas as pd
+import seaborn as sns
+from cycler import cycler
 
 #%%
 # parameters
 dataset = "mnist"
 model_name = "standard"
+# model_name = "vone_convnet-layer1_norm"
+seed=17
+# seed = [1,2,3,4,5]
 lr = 0.01
 wd = 0.0005
-seed = 17
 if dataset=="mnist":
-    normalize = ["lrnb", "lrns", "gn", "ln", "nn", "lrnc", "in", "bn"]
+    # normalize = ["lrnb", "lrns", "gn", "ln", "nn", "lrnc", "in", "bn"]
+    normalize = ["bn", "gn", "in", "ln", "lrnb", "lrnc", "lrns", "nn"]
     eps = [0.01, 0.03, 0.05, 0.07, 0.1, 0.15, 0.2]
     eps_plot = eps.copy()
     eps_plot.insert(0, 0)
@@ -24,44 +30,105 @@ elif dataset=="cifar":
     eps_plot.insert(0, 0)
 
 eps_name = [str(i) for i in eps]
+
 eps_name = '_'.join(eps_name)
 
 #%%
 # open results files 
 results = {}
-for _, n in enumerate(normalize):
-    if dataset=="mnist":
-        file_name = f'{model_name}-lr_{lr}-wd_{wd}-seed_{seed}-normalize_{n}-eps_{eps_name}.pkl'
-    elif dataset=="cifar":
-        file_name = f'{model_name}-normalize_{n}-wd_{wd}-seed_{seed}-eps_{eps_name}.pkl'
-    file_path = os.path.join('..', 'results', f'{dataset}_regularize', 'eval_models', model_name, file_name)
-    with open(file_path, 'rb') as f:
-        out = pickle.load(f)
-        results[n] = out
+if model_name=='vone_convnet-layer1_norm' and type(seed)==list:
+    for _, n in enumerate(normalize):
+        results_per_nm = {}
+        for s in seed:
+            file_name = f'{model_name}-lr_{lr}-wd_{wd}-seed_{s}-normalize_{n}-eps_{eps_name}.pkl'
+            file_path = os.path.join('..', 'results', 'vone_frontend', 'eval_models', model_name, file_name)
+            with open(file_path, 'rb') as f:
+                out = pickle.load(f)
+            results_per_nm[s] = list(out['perturbed'])
+            results_per_nm[s].insert(0, out['clean'])
+        results[n] = results_per_nm
+
+else:
+    for _, n in enumerate(normalize):
+        if dataset=="mnist":
+            file_name = f'{model_name}-lr_{lr}-wd_{wd}-seed_{seed}-normalize_{n}-eps_{eps_name}.pkl'
+        elif dataset=="cifar":
+            file_name = f'{model_name}-normalize_{n}-wd_{wd}-seed_{seed}-eps_{eps_name}.pkl'
+                    
+        # print(os.path.abspath('../results/'))
+        # file_path = os.path.join('..', 'results', f'{dataset}_regularize', 'eval_models', model_name, file_name)
+        file_path = os.path.join('..', 'results', f'{dataset}_regularize', 'eval_models', model_name, file_name)
+        with open(file_path, 'rb') as f:
+            out = pickle.load(f)
+            results[n] = list(out['perturbed'])
+            results[n].insert(0, out['clean'])
 
 # %%
-# plot the results
+print(results.keys())
+print(results['nn'])
+
+
+#%% plot the data
+
 fig, ax = plt.subplots(1, 1, figsize=(8, 6))
-print(len(results.keys()))
-colors = cm.viridis(np.linspace(0, 1, len(results)))
+# colors = cm.Spectral(np.linspace(0, 1, len(results)))
+# colors = np.append(colors, cm.Spectral(np.linspace(0.65, 1, len(results)//2)), axis=0)
+# colors = cm.Set2(np.linspace(0,1,len(results)))
 
-idx = 0
-for name, accuracies in results.items():
-    accs = list(accuracies['perturbed'])
-    accs.insert(0, accuracies['clean']) 
-    
-    ax.plot(eps_plot, accs, 'go-', color=colors[idx], markersize=5, label=name)
-    idx += 1
-ax.set(xlabel="attack strength", ylabel="accuracy", title=dataset)
-if dataset=='cifar':
-    plt.xticks((0, 0.01, 0.02, 0.03))
-if dataset=='mnist':
+if type(seed)==list:
+    df = pd.DataFrame(results)
+    df2 = pd.DataFrame(columns=['norm method', 'eps', 'mean', 'sd'])
+
+    for _, norm_method in enumerate(normalize):
+        for j in range(len(eps)):
+            one_nm_one_eps = np.array([df[norm_method][i][j] for i in df.axes[0]])
+            mean = one_nm_one_eps.mean()
+            sd = one_nm_one_eps.std()
+
+            new_data = pd.DataFrame({'norm method': [norm_method], 'eps': [eps[j]], 'mean': [mean], 'sd': [sd]})
+            df2 = df2.append(new_data, ignore_index=True)
+
+    df2 = df2.groupby(['eps', 'norm method']).mean().sort_values(by=['eps'])
+
+    palette = sns.diverging_palette(220, 20, n=len(results))
+    print(palette)
+    palette.insert(-1, (0,0,0))
+    palette.pop()
+
+    ax = sns.lineplot(
+        data=df2,
+        x='eps',
+        y='mean',
+        hue='norm method',
+        ax=ax,
+        ci='sd',
+        palette=palette
+    )
+    sns.despine()
+    ax.set(xlabel="attack strength", ylabel="accuracy", title='ConvNet with V1 filterbank frontend, 5 seeds')
     plt.xticks((0, 0.05, 0.1, 0.15, 0.2))
-ax.legend()
 
-# save the figure
-save_name = os.path.join('.', f'robustness_{dataset}.png')
-plt.savefig(save_name, dpi=800, bbox_inches='tight', transparent=False)
+            
+else:
+    colors=sns.diverging_palette(220, 20, n=len(results))
+    colors.insert(-1, (0,0,0))
+    colors.pop()
+
+    idx = 0
+    for name, accuracies in results.items():
+        ax.plot(eps_plot, accuracies, 'go-', color=colors[idx], markersize=5, label=name)
+        idx += 1
+
+
+    ax.set(xlabel="attack strength", ylabel="accuracy", title=dataset)
+    if dataset=='cifar':
+        plt.xticks((0, 0.01, 0.02, 0.03))
+    if dataset=='mnist':
+        plt.xticks((0, 0.05, 0.1, 0.15, 0.2))
+    ax.legend()
+
+save_name = os.path.join('.', f'robustness_{dataset}_{model_name}.png')
+plt.savefig(save_name, dpi=400, facecolor='white', bbox_inches='tight', transparent=False)
 # plt.show()
 # plt.close()
 

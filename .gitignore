@@ -18,6 +18,9 @@ slurm_jobs/**/out/
 datasets/*
 results/*
 
+plots/figures/
+*.png
+
 */.ipynb_checkpoints/
 */__pycache__/
 

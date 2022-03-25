@@ -130,12 +130,12 @@ class VOneBlock(nn.Module):
 
     def gabors_f(self, x):
         s_q0 = self.simple_conv_q0(x)
-        s_q1 = self.simple_conv_q1(x)
+        # s_q1 = self.simple_conv_q1(x)
         # c = self.complex(torch.sqrt(0.00001 + s_q0[:, self.simple_channels:, :, :] ** 2 + s_q1[:, self.simple_channels:, :, :] ** 2) / np.sqrt(2))
         # s = self.simple(s_q0[:, 0:self.simple_channels, :, :])
-        s = self.simple(s_q0)
+        # s = self.simple(s_q0)
         # return self.gabors(self.k_exc * torch.cat((s, c), 1))
-        return self.gabors(self.k_exc * s)
+        return self.gabors(self.k_exc * s_q0)
 
     def forward(self, x):
         # Gabor activations [Batch, out_channels, H/stride, W/stride]
@@ -145,5 +145,5 @@ class VOneBlock(nn.Module):
         x = self.norm_dict[self.norm_method](x)
 
         # V1 Block output: (Batch, out_channels, H/stride, W/stride)
-        x = self.output(x)
+        x = self.simple(x)
         return x

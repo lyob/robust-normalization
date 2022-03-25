@@ -11,10 +11,10 @@ from cycler import cycler
 #%%
 # parameters
 dataset = "mnist"
-model_name = "standard"
-# model_name = "vone_convnet-layer1_norm"
-seed=17
-# seed = [1,2,3,4,5]
+# model_name = "standard"
+model_name = "vone_convnet-layer1_norm"
+# seed=17
+seed = [1,2,3,4,5]
 lr = 0.01
 wd = 0.0005
 if dataset=="mnist":
@@ -47,6 +47,7 @@ if model_name=='vone_convnet-layer1_norm' and type(seed)==list:
             results_per_nm[s] = list(out['perturbed'])
             results_per_nm[s].insert(0, out['clean'])
         results[n] = results_per_nm
+    # print(results)
 
 else:
     for _, n in enumerate(normalize):
@@ -80,12 +81,12 @@ if type(seed)==list:
     df2 = pd.DataFrame(columns=['norm method', 'eps', 'mean', 'sd'])
 
     for _, norm_method in enumerate(normalize):
-        for j in range(len(eps)):
+        for j in range(len(eps_plot)):
             one_nm_one_eps = np.array([df[norm_method][i][j] for i in df.axes[0]])
             mean = one_nm_one_eps.mean()
             sd = one_nm_one_eps.std()
 
-            new_data = pd.DataFrame({'norm method': [norm_method], 'eps': [eps[j]], 'mean': [mean], 'sd': [sd]})
+            new_data = pd.DataFrame({'norm method': [norm_method], 'eps': [eps_plot[j]], 'mean': [mean], 'sd': [sd]})
             df2 = df2.append(new_data, ignore_index=True)
 
     df2 = df2.groupby(['eps', 'norm method']).mean().sort_values(by=['eps'])

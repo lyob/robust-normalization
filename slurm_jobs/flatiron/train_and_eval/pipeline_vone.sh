@@ -2,15 +2,19 @@
 PARAM_FILE="mnist_param.txt"
 
 SAVE_FOLDER="./"
-MODEL_NAME=("vone_convnet-layer1_norm") #mode of the model, can be "standard" or "vone_convnet-layer1_norm"
-SEEDS=("1")
+MODEL_NAME=("convnet") #mode of the model, can be "standard" or "convnet"  //// "vone_convnet-layer1_norm" or vone_convnet-layer1_norm-relu_last
+FRONTENDS=("vone_filterbank") # vone_filterbank or learned_conv
+# NORM_POSITIONS=("2 both") # 1, 2, or both
+NORM_POSITIONS=("both") # 1, 2, or both
+# SEEDS=("1 2 3 4 5")
+SEEDS=("4")
 MODES=("val") #mode can be 'train', 'val', 'extract', 'mft', 'pairwise', 'meanvar'
-LEARNING_RATES=("0.01")
-# WEIGHT_DECAYS=("0.0005" "0.0001" "0.001")
-WEIGHT_DECAYS=("0.0005")
-NORMALIZES=("nn" "bn" "ln" "in" "gn" "lrnc" "lrns" "lrnb")
+# LEARNING_RATES=("0.01")
+# WEIGHT_DECAYS=("0.0005")
+# NORMALIZES=("nn" "bn" "ln" "in" "gn" "lrnc" "lrns" "lrnb")
+# NORMALIZES=("bn gn in ln lrnb lrnc")
 # NORMALIZES=("nn" "bn" "ln" "in" "gn" "lrnc" "lrns")
-# NORMALIZES=("lrnb")
+NORMALIZES=("in")
 EPS=("0.01_0.03_0.05_0.07_0.1_0.15_0.2")
 #EPS=("1.0")
 
@@ -18,11 +22,11 @@ EPS=("0.01_0.03_0.05_0.07_0.1_0.15_0.2")
 for MODEL in ${MODEL_NAME[@]};do
 	for SEED in ${SEEDS[@]};do
 		for MODE in ${MODES[@]};do
-			for WEIGHT_DECAY in ${WEIGHT_DECAYS[@]};do
-				for LEARNING_RATE in ${LEARNING_RATES[@]};do
+			for FRONTEND in ${FRONTENDS[@]};do
+				for NORM_POSITION in ${NORM_POSITIONS[@]};do
 					for NORMALIZE in ${NORMALIZES[@]};do
 						for EP in ${EPS[@]};do
-							echo "${SAVE_FOLDER} ${MODEL} ${SEED} ${MODE} ${LEARNING_RATE} ${WEIGHT_DECAY} ${NORMALIZE} ${EP}" >> ${PARAM_FILE}
+							echo "${SAVE_FOLDER} ${FRONTEND} ${NORM_POSITION} ${MODEL} ${SEED} ${MODE} ${NORMALIZE} ${EP}" >> ${PARAM_FILE}
 						done
 					done
 				done

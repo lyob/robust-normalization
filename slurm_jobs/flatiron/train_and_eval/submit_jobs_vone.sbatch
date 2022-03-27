@@ -1,5 +1,6 @@
 #!/bin/bash
-#SBATCH -n 1 # one core
+#SBATCH -n 1 # one node
+#SBATCH -p genx # one cpu per node
 #SBATCH -t 5:00:00
 #SBATCH --mem=16G
 #SBATCH --job-name=normalize

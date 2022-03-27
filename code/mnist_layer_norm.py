@@ -34,7 +34,7 @@ class LRN(nn.Module):
         return x
 
 class Net(nn.Module):
-    def __init__(self, conv_1, in_channels, normalize=None):
+    def __init__(self, conv_1, in_channels, normalize=None, norm_position='both'):
         super(Net, self).__init__()
         self.conv_1 = conv_1
         self.conv_2 = nn.Conv2d(in_channels= in_channels, out_channels=20, kernel_size=5, stride=1)
@@ -62,14 +62,26 @@ class Net(nn.Module):
                            'in': self.in2, 'gn': self.gn2, 'lrns': self.lrn_spatial,
                            'lrnc': self.lrn_channel, 'lrnb': self.lrn_both}
         self.normalize = normalize
+        self.norm_position = norm_position
 
     def forward(self, x):
+            # first layer
             x = self.conv_1(x)
-            x = self.norm_dict1[self.normalize](x)
+            if self.norm_position == '1' or self.norm_position == 'both':
+                x = self.norm_dict1[self.normalize](x)
+            else:
+                x = self.norm_dict1['nn'](x)
             x = self.relu(x)
+            
+            # second layer
             x = self.conv_2(x)
-            x = self.norm_dict2[self.normalize](x)
+            if self.norm_position == '2' or self.norm_position == 'both':
+                x = self.norm_dict2[self.normalize](x)
+            else:
+                x = self.norm_dict2['nn'](x)
             x = self.relu(x)
+
+            # third layer
             x = F.max_pool2d(x, 2, 2)
             x = torch.flatten(x, 1)
             x = self.fc_1(x)

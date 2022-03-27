@@ -34,7 +34,7 @@ class LRN(nn.Module):
         return x
 
 class ConvNetBackEnd(nn.Module):
-    def __init__(self, in_channels, normalize=None):
+    def __init__(self, in_channels, norm_method=None, norm_position='both'):
         super(ConvNetBackEnd, self).__init__()
 
         self.conv_2 = nn.Conv2d(in_channels=in_channels, out_channels=20, kernel_size=5, stride=1)
@@ -61,18 +61,25 @@ class ConvNetBackEnd(nn.Module):
         self.norm_dict2 = {'nn': nn.Identity(), 'bn': self.bn2, 'ln': self.ln2,
                            'in': self.in2, 'gn': self.gn2, 'lrns': self.lrn_spatial,
                            'lrnc': self.lrn_channel, 'lrnb': self.lrn_both}
-        self.normalize = normalize
+        self.norm_method = norm_method
+        self.norm_position = norm_position
+
 
     def forward(self, x):
             # remove first layer
             # x = self.conv_1(x)
-            # x = self.norm_dict1[self.normalize](x)
+            # x = self.norm_dict1[self.norm_method](x)
             # x = self.relu(x)
 
             # same back-end, but remove norm layer
             x = self.conv_2(x)
-            # x = self.norm_dict2[self.normalize](x)
+            if (self.norm_position=='2' or self.norm_position=='both'):
+                x = self.norm_dict2[self.norm_method](x)
+            else:
+                x = self.norm_dict2['nn'](x)
             x = self.relu(x)
+
+            # 3rd layer
             x = F.max_pool2d(x, 2, 2)
             x = torch.flatten(x, 1)
             x = self.fc_1(x)

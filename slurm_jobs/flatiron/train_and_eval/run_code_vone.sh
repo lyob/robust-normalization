@@ -1,11 +1,13 @@
 #!/bin/bash
 
 SAVE_FOLDER=$1
-MODEL=$2
-SEED=$3
-MODE=$4
-LEARNING_RATE=$5
-WEIGHT_DECAY=$6
+FRONTEND=$2
+NORM_POSITION=$3
+MODEL=$4
+SEED=$5
+MODE=$6
+# LEARNING_RATE=$7
+# WEIGHT_DECAY=$8
 NORMALIZE=$7
 EP=$8
 
@@ -15,10 +17,12 @@ conda activate pyenv36;
 
 python3 vone_convnet_norm.py \
 	--save_folder ${SAVE_FOLDER} \
+	--frontend ${FRONTEND} \
+	--norm_position ${NORM_POSITION} \
 	--model_name ${MODEL} \
 	--seed ${SEED} \
-	--learning_rate ${LEARNING_RATE} \
-	--weight_decay ${WEIGHT_DECAY} \
 	--mode ${MODE} \
 	--eps ${EP} \
 	--normalize ${NORMALIZE} \
+	# --learning_rate ${LEARNING_RATE} \
+	# --weight_decay ${WEIGHT_DECAY} \

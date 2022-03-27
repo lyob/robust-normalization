@@ -71,7 +71,8 @@ class VOneBlock(nn.Module):
             self, sf, theta, sigx, sigy, phase,
             k_exc=7,
             simple_channels=16, complex_channels=16, ksize=7, stride=2, input_size=28,
-            norm_method='nn'
+            norm_method='nn',
+            norm_position='both'
         ):
 
         super().__init__()
@@ -127,6 +128,7 @@ class VOneBlock(nn.Module):
         }
 
         self.norm_method = norm_method
+        self.norm_position = norm_position
 
     def gabors_f(self, x):
         s_q0 = self.simple_conv_q0(x)
@@ -142,7 +144,10 @@ class VOneBlock(nn.Module):
         x = self.gabors_f(x)
 
         # Normalization layer
-        x = self.norm_dict[self.norm_method](x)
+        if (self.norm_position=='1' or self.norm_position=='both'):
+            x = self.norm_dict[self.norm_method](x)
+        else: 
+            x = self.norm_dict['nn'](x)
 
         # V1 Block output: (Batch, out_channels, H/stride, W/stride)
         x = self.simple(x)

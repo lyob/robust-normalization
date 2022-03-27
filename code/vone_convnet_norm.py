@@ -46,8 +46,8 @@ def calculate_norm(model):
                 norm_dict[name] = np.sum(np.sqrt(np.sum(param**2, axis=1)))
     return norm_dict
 
-def main(save_folder, model_name, seed, lr, wd, mode, eps, norm_method):
-    print(f'Save folder: {save_folder}, model_name: {model_name}, seed: {seed}, mode: {mode}, lr: {lr}, wd: {wd}, norm_method: {norm_method}', flush=True)
+def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method, norm_position):
+    print(f'Save folder: {save_folder}, model_name: {model_name}, frontend: {frontend}, seed: {seed}, mode: {mode}, lr: {lr}, wd: {wd}, norm_method: {norm_method}, norm_position: {norm_position}', flush=True)
     #load and process data
     (x_train, y_train), (x_test, y_test), min_pixel_value, max_pixel_value = load_mnist()
 
@@ -58,12 +58,15 @@ def main(save_folder, model_name, seed, lr, wd, mode, eps, norm_method):
     ksize = 5
     
     if model_name == 'standard':
-        conv_1 = nn.Conv2d(in_channels=1, out_channels=simple_channels+complex_channels, 
-        kernel_size=ksize, stride=2, padding=ksize//2)
+        conv_1 = nn.Conv2d(in_channels=1, out_channels=simple_channels+complex_channels, kernel_size=ksize, stride=2, padding=ksize//2)
         model = Net(conv_1, simple_channels + complex_channels, normalize=norm_method)
 
-    if model_name == 'vone_convnet-layer1_norm':
-        model = VOneNet(simple_channels=simple_channels, complex_channels=complex_channels, norm_method=norm_method)
+    if model_name == 'convnet':
+        if frontend=='learned_conv':
+            conv_1 = nn.Conv2d(in_channels=1, out_channels=simple_channels+complex_channels, kernel_size=ksize, stride=2, padding=ksize//2)
+            model = Net(conv_1, simple_channels + complex_channels, normalize=norm_method, norm_position=norm_position)
+        elif frontend=='vone_filterbank':
+            model = VOneNet(simple_channels=simple_channels, complex_channels=complex_channels, norm_method=norm_method, norm_position=norm_position)
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=wd)
@@ -86,9 +89,11 @@ def main(save_folder, model_name, seed, lr, wd, mode, eps, norm_method):
         accuracy = np.sum(np.argmax(predictions, axis=1) == np.argmax(y_test[:n_images], axis=1)) / len(y_test[:n_images])
         print("Accuracy on benign test examples: {}%".format(accuracy * 100))
 
-        save_path = os.path.join(save_folder, 'trained_models', model_name)
+        model_folder_name = f'{frontend}_frontend-norm_{norm_position}'
+        save_path = os.path.join(save_folder, 'trained_models', model_folder_name)
         if not os.path.exists(save_path):
             os.makedirs(save_path, exist_ok=True)
+
         save_name = os.path.join(save_path, f'{model_name}-lr_{str(lr)}-wd_{str(wd)}-seed_{str(seed)}-normalize_{norm_method}.pth')
         torch.save(classifier.model.state_dict(),save_name)
         record = {}
@@ -100,7 +105,8 @@ def main(save_folder, model_name, seed, lr, wd, mode, eps, norm_method):
         
     if mode == 'val':
         eps = [float(i) for i in eps]
-        save_path = os.path.join(save_folder, 'trained_models', model_name)
+        model_folder_name = f'{frontend}_frontend-norm_{norm_position}'
+        save_path = os.path.join(save_folder, 'trained_models', model_folder_name)
         save_name = os.path.join(save_path, f'{model_name}-lr_{str(lr)}-wd_{str(wd)}-seed_{str(seed)}-normalize_{norm_method}.pth')
         model.load_state_dict(torch.load(save_name, map_location=device))
         model.eval()
@@ -138,7 +144,7 @@ def main(save_folder, model_name, seed, lr, wd, mode, eps, norm_method):
             print(f"Accuracy on adversarial test examples: {accuracy*100}",flush=True)
             record[ep_idx] = accuracy
         eps = [str(i) for i in eps]
-        save_path_eval = os.path.join(save_folder, 'eval_models', model_name)
+        save_path_eval = os.path.join(save_folder, 'eval_models', model_folder_name)
         if not os.path.exists(save_path_eval):
             os.makedirs(save_path_eval, exist_ok=True)
         save_name_eval = os.path.join(save_path_eval, model_name + '-lr_' + str(lr) + '-wd_' + str(wd) + '-seed_' + str(seed) + 
@@ -154,22 +160,27 @@ if __name__ == '__main__':
     print("we are running!", flush=True)
     parser = argparse.ArgumentParser(description='Run MNIST experiments on batchNorm, L2-regularizer and noise...')
     parser.add_argument('--save_folder',help='The folder to save model')
+    parser.add_argument('--frontend', help='vone_frontend or learned_conv_frontend')
+    parser.add_argument('--norm_position', help='instances of normalization, either 1, 2, or both')
     parser.add_argument('--model_name',help='Model name')
     parser.add_argument('--seed', help='Fix seed for reproducibility',type=int)
-    parser.add_argument('--learning_rate', help='Learning rate to train model', type=float)
-    parser.add_argument('--weight_decay', help='Amount of weight decay (L2 regularizer)', type=float)
+    # parser.add_argument('--learning_rate', help='Learning rate to train model', type=float)
+    # parser.add_argument('--weight_decay', help='Amount of weight decay (L2 regularizer)', type=float)
     parser.add_argument('--normalize', help='norm_method Type')
     parser.add_argument('--mode', help='Mode to run, choose from (train), (val), (extract)',default='train')
     parser.add_argument('--eps', help="Adversarial attack strength")
 
     torch.autograd.set_detect_anomaly(True)
 
+    weight_decay=0.0005
+    learning_rate=0.01
+
     args = parser.parse_args()
-    eps = args.eps.split("_")    
-    save_folder = os.path.join(args.save_folder, 'vone_frontend')
+    eps = args.eps.split("_")
+    save_folder = os.path.join(args.save_folder, args.model_name)
     seed_everything(args.seed)
 
     global device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    main(save_folder, args.model_name, args.seed, args.learning_rate, args.weight_decay, args.mode, eps, args.normalize)
+    main(save_folder, args.frontend, args.model_name, args.seed, learning_rate, weight_decay, args.mode, eps, args.normalize, args.norm_position)

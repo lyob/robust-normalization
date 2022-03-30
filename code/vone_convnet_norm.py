@@ -32,7 +32,7 @@ def seed_everything(seed: int):
     torch.manual_seed(seed)
     # torch.backends.cudnn.benchmark = False
     # torch.backends.cudnn.deterministic = True
-    torch.use_deterministic_algorithms()
+    # torch.use_deterministic_algorithms()
     
 def calculate_norm(model):
     norm_dict = {}

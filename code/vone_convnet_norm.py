@@ -30,8 +30,9 @@ def seed_everything(seed: int):
     random.seed(seed)
     os.environ['PYTHONHASHSEED'] = str(seed)
     torch.manual_seed(seed)
-    torch.backends.cudnn.benchmark = False
-    torch.backends.cudnn.deterministic = True
+    # torch.backends.cudnn.benchmark = False
+    # torch.backends.cudnn.deterministic = True
+    torch.use_deterministic_algorithms()
     
 def calculate_norm(model):
     norm_dict = {}

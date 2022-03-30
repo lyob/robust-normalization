@@ -78,9 +78,9 @@ class ConvNetBackEnd(nn.Module):
             else:
                 x = self.norm_dict2['nn'](x)
             x = self.relu(x)
-
-            # 3rd layer
             x = F.max_pool2d(x, 2, 2)
             x = torch.flatten(x, 1)
+            
+            # 3rd layer
             x = self.fc_1(x)
             return x

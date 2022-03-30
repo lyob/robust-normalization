@@ -11,12 +11,14 @@ from cycler import cycler
 #%%
 # parameters
 dataset = "mnist"
-# model_name = "standard"
-model_name = "vone_convnet-layer1_norm"
-# seed=17
+model_name = "convnet"
+frontend = 'vone_filterbank' # vone_filterbank or learned_conv
+norm_position = 'both'
+# seed = 17
 seed = [1,2,3,4,5]
 lr = 0.01
 wd = 0.0005
+
 if dataset=="mnist":
     # normalize = ["lrnb", "lrns", "gn", "ln", "nn", "lrnc", "in", "bn"]
     normalize = ["bn", "gn", "in", "ln", "lrnb", "lrnc", "lrns", "nn"]
@@ -36,12 +38,12 @@ eps_name = '_'.join(eps_name)
 #%%
 # open results files 
 results = {}
-if model_name=='vone_convnet-layer1_norm' and type(seed)==list:
+if model_name=='convnet' and type(seed)==list:
     for _, n in enumerate(normalize):
         results_per_nm = {}
         for s in seed:
             file_name = f'{model_name}-lr_{lr}-wd_{wd}-seed_{s}-normalize_{n}-eps_{eps_name}.pkl'
-            file_path = os.path.join('..', 'results', 'vone_frontend', 'eval_models', model_name, file_name)
+            file_path = os.path.join('..', 'results', f'{model_name}', 'eval_models', f'{frontend}_frontend-norm_{norm_position}', file_name)
             with open(file_path, 'rb') as f:
                 out = pickle.load(f)
             results_per_nm[s] = list(out['perturbed'])
@@ -106,7 +108,11 @@ if type(seed)==list:
         palette=palette
     )
     sns.despine()
-    ax.set(xlabel="attack strength", ylabel="accuracy", title='ConvNet with V1 filterbank frontend, 5 seeds')
+    if norm_position != 'both':
+        norm_statement = f'normalization at layer {norm_position} only'
+    else:
+        norm_statement = f'normalization at both (1&2) layers'
+    ax.set(xlabel="attack strength", ylabel="accuracy", title=f'{model_name} with {frontend} frontend, {norm_statement}. (5 seeds)')
     plt.xticks((0, 0.05, 0.1, 0.15, 0.2))
 
             
@@ -128,7 +134,8 @@ else:
         plt.xticks((0, 0.05, 0.1, 0.15, 0.2))
     ax.legend()
 
-save_name = os.path.join('.', f'robustness_{dataset}_{model_name}.png')
+    
+save_name = os.path.join('.', f'robustness-{model_name}-{frontend}_frontend-norm_{norm_position}.png')
 plt.savefig(save_name, dpi=400, facecolor='white', bbox_inches='tight', transparent=False)
 # plt.show()
 # plt.close()

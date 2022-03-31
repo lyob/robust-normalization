@@ -13,9 +13,11 @@ from cycler import cycler
 dataset = "mnist"
 model_name = "convnet"
 frontend = 'vone_filterbank' # vone_filterbank or learned_conv
+frontend = 'learned_conv'
 norm_position = 'both'
 # seed = 17
 seed = [1,2,3,4,5]
+seed = [16]
 lr = 0.01
 wd = 0.0005
 

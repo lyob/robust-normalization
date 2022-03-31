@@ -18,7 +18,7 @@ from art.utils import load_mnist
 from mnist_layer_norm import Net
 from vonenet.vonenet import VOneNet
 
-folder_path = '../results'
+folder_path = '..'
 os.chdir(folder_path)
     
 def seed_everything(seed: int):
@@ -62,12 +62,27 @@ def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method
         conv_1 = nn.Conv2d(in_channels=1, out_channels=simple_channels+complex_channels, kernel_size=ksize, stride=2, padding=ksize//2)
         model = Net(conv_1, simple_channels + complex_channels, normalize=norm_method)
 
-    if model_name == 'convnet':
+    if model_name == 'convnet' or model_name == 'convnet2':
         if frontend=='learned_conv':
             conv_1 = nn.Conv2d(in_channels=1, out_channels=simple_channels+complex_channels, kernel_size=ksize, stride=2, padding=ksize//2)
             model = Net(conv_1, simple_channels + complex_channels, normalize=norm_method, norm_position=norm_position)
         elif frontend=='vone_filterbank':
             model = VOneNet(simple_channels=simple_channels, complex_channels=complex_channels, norm_method=norm_method, norm_position=norm_position)
+        elif frontend=='frozen_conv':
+            conv_1 = nn.Conv2d(in_channels=1, out_channels=simple_channels+complex_channels, kernel_size=ksize, stride=2, padding=ksize//2)
+            model = Net(conv_1, simple_channels + complex_channels, normalize=norm_method, norm_position=norm_position)
+            
+            # load conv_1 weights from pre-trained model 
+            load_path = os.path.join('code', 'saved_model_weights')
+            load_name = os.path.join(load_path, f'convnet-lr_0.01-wd_0.0005-seed_1-normalize_nn.pth')
+            
+            extracted_weights = torch.load(load_name, map_location=device)
+            fixed_weights = {}
+            fixed_weights['conv_1.weight'] = extracted_weights['conv_1.weight']
+            fixed_weights['conv_1.bias'] = extracted_weights['conv_1.bias']
+            
+            model.load_state_dict(fixed_weights, strict=False)
+            model.conv_1.requires_grad = False
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=wd)
@@ -120,7 +135,7 @@ def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method
             input_shape=(1, 28, 28),
             nb_classes=10,)
         
-        n_images = 1000
+        n_images = 10000
         predictions = classifier.predict(x_test)
         accuracy = np.sum(np.argmax(predictions, axis=1) == np.argmax(y_test, axis=1)) / len(y_test)
         print("Accuracy on benign test examples: {}%".format(accuracy * 100), flush=True)
@@ -178,7 +193,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     eps = args.eps.split("_")
-    save_folder = os.path.join(args.save_folder, args.model_name)
+    save_folder = os.path.join('results', args.save_folder, args.model_name)
     seed_everything(args.seed)
 
     global device

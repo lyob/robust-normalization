@@ -44,7 +44,6 @@ if model_name == 'convnet':
 model_folder_name = f'{frontend}_frontend-norm_{norm_position}'
 save_path = os.path.join(save_folder, 'trained_models', model_folder_name)
 save_name = os.path.join(save_path, f'{model_name}-lr_{str(lr)}-wd_{str(wd)}-seed_{str(seed)}-normalize_{norm_method}.pth')
-
 model.load_state_dict(torch.load(save_name, map_location=device))
 model.eval()
 
@@ -108,6 +107,7 @@ fig.set(facecolor='white')
 
 save_name = os.path.join('..', 'plots', 'figures', 'convnet-filter-visualization', f'filters-{frontend}_frontend-norm_{norm_position}-method_{norm_method}.png')
 plt.savefig(save_name, dpi=200, facecolor='white', bbox_inches='tight', transparent=False)
+
 
 #%%
 # the backend

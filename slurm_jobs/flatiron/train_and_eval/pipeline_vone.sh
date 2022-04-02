@@ -1,20 +1,29 @@
 #!/bin/bash
 PARAM_FILE="mnist_param.txt"
 
-SAVE_FOLDER="./"
-MODEL_NAME=("convnet") #mode of the model, can be "standard" or "convnet"  //// "vone_convnet-layer1_norm" or vone_convnet-layer1_norm-relu_last
-FRONTENDS=("vone_filterbank") # vone_filterbank or learned_conv
-# NORM_POSITIONS=("2 both") # 1, 2, or both
-NORM_POSITIONS=("both") # 1, 2, or both
+SAVE_FOLDER="results/"
+MODEL_NAME=("convnet3") #mode of the model, can be "standard" or "convnet" or "convnet2" //// "vone_convnet-layer1_norm" or vone_convnet-layer1_norm-relu_last
+
+# FRONTENDS=("learned_conv") # vone_filterbank or learned_conv or frozen_conv
+# FRONTENDS=("frozen_conv") 
+FRONTENDS=("vone_filterbank")
+
+NORM_POSITIONS=("1") # 1, 2, or both
+# NORM_POSITIONS=("both") # 1, 2, or both
+
 # SEEDS=("1 2 3 4 5")
-SEEDS=("4")
-MODES=("val") #mode can be 'train', 'val', 'extract', 'mft', 'pairwise', 'meanvar'
+SEEDS=("17")
+
+MODES=("val") #mode can be 'train', 'val'
 # LEARNING_RATES=("0.01")
 # WEIGHT_DECAYS=("0.0005")
+
 # NORMALIZES=("nn" "bn" "ln" "in" "gn" "lrnc" "lrns" "lrnb")
-# NORMALIZES=("bn gn in ln lrnb lrnc")
-# NORMALIZES=("nn" "bn" "ln" "in" "gn" "lrnc" "lrns")
-NORMALIZES=("in")
+# NORMALIZES=("nn" "bn" "in" "ln" "gn" "lrnc" "lrns")
+NORMALIZES=("bn gn in ln lrnb lrnc lrns nn")
+# NORMALIZES=("lrnb lrnc lrns nn")
+# NORMALIZES=("nn")
+
 EPS=("0.01_0.03_0.05_0.07_0.1_0.15_0.2")
 #EPS=("1.0")
 
@@ -49,7 +58,7 @@ while read line; do
         if [ "$(expr ${LINE_COUNT} % 100)" = "0" ]
         then
                 echo "New Array For Parameters from ${START_INDEX} to ${LINE_COUNT}"
-                sbatch --array=1-100 submit_jobs_vone.sbatch ${ARRAY_INDEX} ${PARAM_FILE}
+                sbatch --array=1-100 submit_jobs_vone_gpu.sbatch ${ARRAY_INDEX} ${PARAM_FILE}
                 START_INDEX=$(expr ${LINE_COUNT} + 1)
                 ARRAY_INDEX=$(expr ${ARRAY_INDEX} + 1)
         fi
@@ -65,6 +74,6 @@ then
         DIFF=$(expr ${LINE_COUNT} - ${START_INDEX} + 1)
         echo "New Array For Parameters from ${START_INDEX} to ${LINE_COUNT}"
         #sbatch --array=1-${DIFF} --mem 16G normalize.sbatch ${ARRAY_INDEX} ${PARAM_FILE}
-	sbatch --array=1-${DIFF} submit_jobs_vone.sbatch ${ARRAY_INDEX} ${PARAM_FILE}
+	sbatch --array=1-${DIFF} submit_jobs_vone_gpu.sbatch ${ARRAY_INDEX} ${PARAM_FILE}
 fi
 

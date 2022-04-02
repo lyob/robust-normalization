@@ -1,7 +1,8 @@
 #!/bin/bash
 #SBATCH -n 1 # one node
-#SBATCH -p genx # one cpu per node
-#SBATCH -t 5:00:00
+#SBATCH -p genx # a small job with...
+#SBATCH -c 1 # ...one core
+#SBATCH -t 10:00:00
 #SBATCH --mem=16G
 #SBATCH --job-name=normalize
 #SBATCH --output ./out/mnist/out.%j.%a.%N.out -e ./err/mnist/err.%j.%a.%N.err

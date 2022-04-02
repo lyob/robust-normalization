@@ -15,7 +15,7 @@ from art.attacks.evasion import ProjectedGradientDescent, FastGradientMethod
 from art.estimators.classification import PyTorchClassifier, EnsembleClassifier
 from art.utils import load_mnist
 
-from mnist_layer_norm import Net
+from mnist_layer_norm import Net, Net_1, Net_2
 from vonenet.vonenet import VOneNet
 
 folder_path = '..'
@@ -30,8 +30,8 @@ def seed_everything(seed: int):
     random.seed(seed)
     os.environ['PYTHONHASHSEED'] = str(seed)
     torch.manual_seed(seed)
-    # torch.backends.cudnn.benchmark = False
-    # torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
     # torch.use_deterministic_algorithms()
     
 def calculate_norm(model):
@@ -62,27 +62,35 @@ def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method
         conv_1 = nn.Conv2d(in_channels=1, out_channels=simple_channels+complex_channels, kernel_size=ksize, stride=2, padding=ksize//2)
         model = Net(conv_1, simple_channels + complex_channels, normalize=norm_method)
 
-    if model_name == 'convnet' or model_name == 'convnet2':
-        if frontend=='learned_conv':
+    if model_name == 'convnet' or model_name == 'convnet2' or model_name == 'convnet3':
+        if frontend=='vone_filterbank':
+            model = VOneNet(simple_channels=simple_channels, complex_channels=complex_channels, norm_method=norm_method)
+        
+        elif frontend=='learned_conv' or frontend=='frozen_conv':
             conv_1 = nn.Conv2d(in_channels=1, out_channels=simple_channels+complex_channels, kernel_size=ksize, stride=2, padding=ksize//2)
-            model = Net(conv_1, simple_channels + complex_channels, normalize=norm_method, norm_position=norm_position)
-        elif frontend=='vone_filterbank':
-            model = VOneNet(simple_channels=simple_channels, complex_channels=complex_channels, norm_method=norm_method, norm_position=norm_position)
-        elif frontend=='frozen_conv':
-            conv_1 = nn.Conv2d(in_channels=1, out_channels=simple_channels+complex_channels, kernel_size=ksize, stride=2, padding=ksize//2)
-            model = Net(conv_1, simple_channels + complex_channels, normalize=norm_method, norm_position=norm_position)
             
-            # load conv_1 weights from pre-trained model 
-            load_path = os.path.join('code', 'saved_model_weights')
-            load_name = os.path.join(load_path, f'convnet-lr_0.01-wd_0.0005-seed_1-normalize_nn.pth')
-            
-            extracted_weights = torch.load(load_name, map_location=device)
-            fixed_weights = {}
-            fixed_weights['conv_1.weight'] = extracted_weights['conv_1.weight']
-            fixed_weights['conv_1.bias'] = extracted_weights['conv_1.bias']
-            
-            model.load_state_dict(fixed_weights, strict=False)
-            model.conv_1.requires_grad = False
+            if norm_position == 'both':
+                model = Net(conv_1, simple_channels + complex_channels, normalize=norm_method)
+            elif norm_position == '1':
+                model = Net_1(conv_1, simple_channels + complex_channels, normalize=norm_method)
+            elif norm_position == '2':
+                model = Net_2(conv_1, simple_channels + complex_channels, normalize=norm_method)
+
+            if frontend=='frozen_conv':
+                # load conv_1 weights from pre-trained model 
+                load_path = os.path.join('code', 'saved_model_weights')
+                load_name = os.path.join(load_path, f'convnet-lr_0.01-wd_0.0005-seed_1-normalize_nn.pth')
+                
+                extracted_weights = torch.load(load_name, map_location=device)
+                fixed_weights = {}
+                fixed_weights['conv_1.weight'] = extracted_weights['conv_1.weight']
+                fixed_weights['conv_1.bias'] = extracted_weights['conv_1.bias']
+                
+                model.load_state_dict(fixed_weights, strict=False)
+                model.conv_1.requires_grad = False
+                # also set the requires_grad flag of the weight and bias to False, just in case
+                model.conv_1.weight.requires_grad = False
+                model.conv_1.bias.requires_grad = False
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=wd)
@@ -111,7 +119,7 @@ def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method
             os.makedirs(save_path, exist_ok=True)
 
         save_name = os.path.join(save_path, f'{model_name}-lr_{str(lr)}-wd_{str(wd)}-seed_{str(seed)}-normalize_{norm_method}.pth')
-        torch.save(classifier.model.state_dict(),save_name)
+        torch.save(classifier.model.state_dict(), save_name)
         record = {}
         record['accuracy'] = accuracy
         norm = calculate_norm(classifier.model)
@@ -125,6 +133,7 @@ def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method
         save_path = os.path.join(save_folder, 'trained_models', model_folder_name)
         save_name = os.path.join(save_path, f'{model_name}-lr_{str(lr)}-wd_{str(wd)}-seed_{str(seed)}-normalize_{norm_method}.pth')
         model.load_state_dict(torch.load(save_name, map_location=device))
+        print('device is', device)
         model.eval()
         
         classifier = PyTorchClassifier(
@@ -135,7 +144,7 @@ def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method
             input_shape=(1, 28, 28),
             nb_classes=10,)
         
-        n_images = 10000
+        n_images = 1000
         predictions = classifier.predict(x_test)
         accuracy = np.sum(np.argmax(predictions, axis=1) == np.argmax(y_test, axis=1)) / len(y_test)
         print("Accuracy on benign test examples: {}%".format(accuracy * 100), flush=True)
@@ -193,7 +202,9 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     eps = args.eps.split("_")
-    save_folder = os.path.join('results', args.save_folder, args.model_name)
+    save_folder = os.path.join(args.save_folder, args.model_name)
+    if not os.path.exists(save_folder):
+        os.makedirs(save_folder, exist_ok=True)
     seed_everything(args.seed)
 
     global device

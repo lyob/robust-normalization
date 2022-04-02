@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH -n 1 # one core
 #SBATCH -p gpu --gpus=1 -c 1 --gpus-per-task=1 --constraint=v100
-#SBATCH -t 5:00:00
-#SBATCH --mem=16G
+#SBATCH -t 2:00:00
+#SBATCH --mem=8G
 #SBATCH --job-name=normalize
 #SBATCH --output ./out/mnist/out.%j.%a.%N.out -e ./err/mnist/err.%j.%a.%N.err
 

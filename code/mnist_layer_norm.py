@@ -34,7 +34,7 @@ class LRN(nn.Module):
         return x
 
 class Net(nn.Module):
-    def __init__(self, conv_1, in_channels, normalize=None, norm_position='both'):
+    def __init__(self, conv_1, in_channels, normalize=None):
         super(Net, self).__init__()
         self.conv_1 = conv_1
         self.conv_2 = nn.Conv2d(in_channels= in_channels, out_channels=20, kernel_size=5, stride=1)
@@ -62,27 +62,102 @@ class Net(nn.Module):
                            'in': self.in2, 'gn': self.gn2, 'lrns': self.lrn_spatial,
                            'lrnc': self.lrn_channel, 'lrnb': self.lrn_both}
         self.normalize = normalize
-        self.norm_position = norm_position
 
     def forward(self, x):
-            # first layer
-            x = self.conv_1(x)
-            if self.norm_position == '1' or self.norm_position == 'both':
-                x = self.norm_dict1[self.normalize](x)
-            else:
-                x = self.norm_dict1['nn'](x)
-            x = self.relu(x)
-            
-            # second layer
-            x = self.conv_2(x)
-            if self.norm_position == '2' or self.norm_position == 'both':
-                x = self.norm_dict2[self.normalize](x)
-            else:
-                x = self.norm_dict2['nn'](x)
-            x = self.relu(x)
+        # first layer
+        x = self.conv_1(x)
+        x = self.norm_dict1[self.normalize](x)
+        x = self.relu(x)
+        
+        # second layer
+        x = self.conv_2(x)
+        x = self.norm_dict2[self.normalize](x)
+        x = self.relu(x)
+        x = F.max_pool2d(x, 2, 2)
+        x = torch.flatten(x, 1)
 
-            # third layer
-            x = F.max_pool2d(x, 2, 2)
-            x = torch.flatten(x, 1)
-            x = self.fc_1(x)
-            return x
+        # third layer
+        x = self.fc_1(x)
+        return x
+
+class Net_1(nn.Module):
+    def __init__(self, conv_1, in_channels, normalize=None):
+        super(Net_1, self).__init__()
+        self.conv_1 = conv_1
+        self.conv_2 = nn.Conv2d(in_channels= in_channels, out_channels=20, kernel_size=5, stride=1)
+        self.fc_1 = nn.Linear(in_features=500, out_features=10)
+        self.relu = nn.ReLU()
+
+        self.bn1 = nn.BatchNorm2d(in_channels)
+        self.ln1 = nn.LayerNorm([in_channels, 14, 14])
+        self.in1 = nn.InstanceNorm2d(in_channels, affine=True)
+        self.gn1 = nn.GroupNorm(4, in_channels)
+
+        self.lrn = nn.LocalResponseNorm(5, alpha=0.001)
+        self.lrn_channel = nn.LocalResponseNorm(5, alpha=0.001)
+        self.lrn_spatial = LRN(spatial_size=3, across_channel_spatial=False)
+        self.lrn_both = LRN(spatial_size=3, channel_size=5, across_channel_spatial=True)
+
+        self.norm_dict1 = {'nn': nn.Identity(),'bn': self.bn1, 'ln': self.ln1, 
+                           'in': self.in1, 'gn': self.gn1, 'lrns': self.lrn_spatial,
+                           'lrnc': self.lrn_channel, 'lrnb': self.lrn_both}
+        self.norm_dict2 = {'nn': nn.Identity()}
+        self.normalize = normalize
+
+    def forward(self, x):
+        # first layer
+        x = self.conv_1(x)
+        x = self.norm_dict1[self.normalize](x)
+        x = self.relu(x)
+        
+        # second layer
+        x = self.conv_2(x)
+        x = self.norm_dict2['nn'](x)
+        x = self.relu(x)
+        x = F.max_pool2d(x, 2, 2)
+        x = torch.flatten(x, 1)
+
+        # third layer
+        x = self.fc_1(x)
+        return x
+
+class Net_2(nn.Module):
+    def __init__(self, conv_1, in_channels, normalize=None):
+        super(Net_2, self).__init__()
+        self.conv_1 = conv_1
+        self.conv_2 = nn.Conv2d(in_channels= in_channels, out_channels=20, kernel_size=5, stride=1)
+        self.fc_1 = nn.Linear(in_features=500, out_features=10)
+        self.relu = nn.ReLU()
+
+        self.bn2 = nn.BatchNorm2d(20)
+        self.ln2 = nn.LayerNorm([20, 10, 10])
+        self.in2 = nn.InstanceNorm2d(20, affine=True)
+        self.gn2 = nn.GroupNorm(4, 20)
+
+        self.lrn = nn.LocalResponseNorm(5, alpha=0.001)
+        self.lrn_channel = nn.LocalResponseNorm(5, alpha=0.001)
+        self.lrn_spatial = LRN(spatial_size=3, across_channel_spatial=False)
+        self.lrn_both = LRN(spatial_size=3, channel_size=5, across_channel_spatial=True)
+
+        self.norm_dict1 = {'nn': nn.Identity()}
+        self.norm_dict2 = {'nn': nn.Identity(), 'bn': self.bn2, 'ln': self.ln2,
+                           'in': self.in2, 'gn': self.gn2, 'lrns': self.lrn_spatial,
+                           'lrnc': self.lrn_channel, 'lrnb': self.lrn_both}
+        self.normalize = normalize
+
+    def forward(self, x):
+        # first layer
+        x = self.conv_1(x)
+        x = self.norm_dict1['nn'](x)
+        x = self.relu(x)
+        
+        # second layer
+        x = self.conv_2(x)
+        x = self.norm_dict2[self.normalize](x)
+        x = self.relu(x)
+        x = F.max_pool2d(x, 2, 2)
+        x = torch.flatten(x, 1)
+
+        # third layer
+        x = self.fc_1(x)
+        return x

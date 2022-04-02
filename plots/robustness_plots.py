@@ -11,19 +11,19 @@ from cycler import cycler
 #%%
 # parameters
 dataset = "mnist"
-model_name = "convnet"
-frontend = 'vone_filterbank' # vone_filterbank or learned_conv
-frontend = 'learned_conv'
-norm_position = 'both'
-# seed = 17
-seed = [1,2,3,4,5]
-seed = [16]
+model_name = "convnet3"
+# frontend = 'vone_filterbank' # vone_filterbank or learned_conv
+# frontend = 'learned_conv'
+frontend = 'frozen_conv'
+norm_position = '1'
+# seed = [1,2,3,4,5]
+seed = [17]
 lr = 0.01
 wd = 0.0005
 
 if dataset=="mnist":
     # normalize = ["lrnb", "lrns", "gn", "ln", "nn", "lrnc", "in", "bn"]
-    normalize = ["bn", "gn", "in", "ln", "lrnb", "lrnc", "lrns", "nn"]
+    normalize = ["bn", "gn", "in", "ln", "lrnc", "lrns", "lrnb", "nn"]
     eps = [0.01, 0.03, 0.05, 0.07, 0.1, 0.15, 0.2]
     eps_plot = eps.copy()
     eps_plot.insert(0, 0)
@@ -40,7 +40,7 @@ eps_name = '_'.join(eps_name)
 #%%
 # open results files 
 results = {}
-if model_name=='convnet' and type(seed)==list:
+if model_name=='convnet3' and type(seed)==list:
     for _, n in enumerate(normalize):
         results_per_nm = {}
         for s in seed:
@@ -76,9 +76,6 @@ print(results['nn'])
 #%% plot the data
 
 fig, ax = plt.subplots(1, 1, figsize=(8, 6))
-# colors = cm.Spectral(np.linspace(0, 1, len(results)))
-# colors = np.append(colors, cm.Spectral(np.linspace(0.65, 1, len(results)//2)), axis=0)
-# colors = cm.Set2(np.linspace(0,1,len(results)))
 
 if type(seed)==list:
     df = pd.DataFrame(results)
@@ -107,14 +104,15 @@ if type(seed)==list:
         hue='norm method',
         ax=ax,
         ci='sd',
-        palette=palette
+        palette=palette,
+        hue_order=normalize
     )
     sns.despine()
     if norm_position != 'both':
         norm_statement = f'normalization at layer {norm_position} only'
     else:
         norm_statement = f'normalization at both (1&2) layers'
-    ax.set(xlabel="attack strength", ylabel="accuracy", title=f'{model_name} with {frontend} frontend, {norm_statement}. (5 seeds)')
+    ax.set(xlabel="attack strength", ylabel="accuracy", title=f'{model_name} with {frontend} frontend, {norm_statement}. seeds = {seed}')
     plt.xticks((0, 0.05, 0.1, 0.15, 0.2))
 
             
@@ -137,7 +135,7 @@ else:
     ax.legend()
 
     
-save_name = os.path.join('.', f'robustness-{model_name}-{frontend}_frontend-norm_{norm_position}.png')
+save_name = os.path.join('.', f'robustness-{model_name}-{frontend}_frontend-norm_{norm_position}-seeds_{seed}.png')
 plt.savefig(save_name, dpi=400, facecolor='white', bbox_inches='tight', transparent=False)
 # plt.show()
 # plt.close()

@@ -2,14 +2,14 @@
 PARAM_FILE="mnist_param.txt"
 
 SAVE_FOLDER="results/"
-MODEL_NAME=("convnet3") #mode of the model, can be "standard" or "convnet" or "convnet2" //// "vone_convnet-layer1_norm" or vone_convnet-layer1_norm-relu_last
+MODEL_NAME=("convnet4") #mode of the model, can be "standard" or "convnet" or "convnet2" //// "vone_convnet-layer1_norm" or vone_convnet-layer1_norm-relu_last
 
-# FRONTENDS=("learned_conv") # vone_filterbank or learned_conv or frozen_conv
+FRONTENDS=("learned_conv") # vone_filterbank or learned_conv or frozen_conv
 # FRONTENDS=("frozen_conv") 
-FRONTENDS=("vone_filterbank")
+# FRONTENDS=("vone_filterbank")
 
-NORM_POSITIONS=("1") # 1, 2, or both
-# NORM_POSITIONS=("both") # 1, 2, or both
+# NORM_POSITIONS=("1") # 1, 2, or both
+NORM_POSITIONS=("both") # 1, 2, or both
 
 # SEEDS=("1 2 3 4 5")
 SEEDS=("17")

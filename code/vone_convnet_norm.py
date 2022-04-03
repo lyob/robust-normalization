@@ -30,8 +30,8 @@ def seed_everything(seed: int):
     random.seed(seed)
     os.environ['PYTHONHASHSEED'] = str(seed)
     torch.manual_seed(seed)
-    torch.backends.cudnn.benchmark = False
-    torch.backends.cudnn.deterministic = True
+    # torch.backends.cudnn.benchmark = False
+    # torch.backends.cudnn.deterministic = True
     # torch.use_deterministic_algorithms()
     
 def calculate_norm(model):
@@ -62,7 +62,7 @@ def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method
         conv_1 = nn.Conv2d(in_channels=1, out_channels=simple_channels+complex_channels, kernel_size=ksize, stride=2, padding=ksize//2)
         model = Net(conv_1, simple_channels + complex_channels, normalize=norm_method)
 
-    if model_name == 'convnet' or model_name == 'convnet2' or model_name == 'convnet3':
+    if model_name == 'convnet' or model_name == 'convnet2' or model_name == 'convnet3' or model_name == 'convnet4':
         if frontend=='vone_filterbank':
             model = VOneNet(simple_channels=simple_channels, complex_channels=complex_channels, norm_method=norm_method)
         
@@ -71,15 +71,15 @@ def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method
             
             if norm_position == 'both':
                 model = Net(conv_1, simple_channels + complex_channels, normalize=norm_method)
-            elif norm_position == '1':
+            if norm_position == '1':
                 model = Net_1(conv_1, simple_channels + complex_channels, normalize=norm_method)
-            elif norm_position == '2':
+            if norm_position == '2':
                 model = Net_2(conv_1, simple_channels + complex_channels, normalize=norm_method)
 
             if frontend=='frozen_conv':
                 # load conv_1 weights from pre-trained model 
                 load_path = os.path.join('code', 'saved_model_weights')
-                load_name = os.path.join(load_path, f'convnet-lr_0.01-wd_0.0005-seed_1-normalize_nn.pth')
+                load_name = os.path.join(load_path, f'convnet3-lr_0.01-wd_0.0005-seed_17-normalize_nn.pth')
                 
                 extracted_weights = torch.load(load_name, map_location=device)
                 fixed_weights = {}

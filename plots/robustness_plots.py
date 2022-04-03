@@ -11,11 +11,11 @@ from cycler import cycler
 #%%
 # parameters
 dataset = "mnist"
-model_name = "convnet3"
+model_name = "convnet4"
 # frontend = 'vone_filterbank' # vone_filterbank or learned_conv
-# frontend = 'learned_conv'
-frontend = 'frozen_conv'
-norm_position = '1'
+frontend = 'learned_conv'
+# frontend = 'frozen_conv'
+norm_position = 'both'
 # seed = [1,2,3,4,5]
 seed = [17]
 lr = 0.01
@@ -40,7 +40,7 @@ eps_name = '_'.join(eps_name)
 #%%
 # open results files 
 results = {}
-if model_name=='convnet3' and type(seed)==list:
+if (model_name=='convnet3' or model_name[:7]=='convnet') and type(seed)==list:
     for _, n in enumerate(normalize):
         results_per_nm = {}
         for s in seed:
@@ -112,7 +112,7 @@ if type(seed)==list:
         norm_statement = f'normalization at layer {norm_position} only'
     else:
         norm_statement = f'normalization at both (1&2) layers'
-    ax.set(xlabel="attack strength", ylabel="accuracy", title=f'{model_name} with {frontend} frontend, {norm_statement}. seeds = {seed}')
+    ax.set(xlabel="attack strength", ylabel="accuracy", title=f'{model_name} with {frontend} frontend, {norm_statement}. \nseeds = {seed}')
     plt.xticks((0, 0.05, 0.1, 0.15, 0.2))
 
             

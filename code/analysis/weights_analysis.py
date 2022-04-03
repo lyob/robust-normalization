@@ -9,7 +9,7 @@ import sys
 sys.path.insert(0,'..')
 os.chdir('..')
 
-from mnist_layer_norm import Net
+from mnist_layer_norm import Net, Net_1, Net_2
 from vonenet.vonenet import VOneNet
 
 os.chdir('../results')
@@ -17,13 +17,14 @@ print(os.path.abspath('.'))
 
 #%% parameters
 # model_name = 'standard'
-model_name = 'convnet'
-frontend = 'vone_filterbank'  # learned_conv or vone_filterbank
-frontend = 'learned_conv'  # learned_conv or vone_filterbank
+model_name = 'convnet3'
+# frontend = 'vone_filterbank'  # learned_conv or vone_filterbank
+frontend = 'learned_conv'  # learned_conv or vone_filterbank or frozen_conv
+# frontend = 'frozen_conv'  # learned_conv or vone_filterbank or frozen_conv
 norm_position = '1'
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-seed = 1
-norm_method = 'in'
+seed = 17
+norm_method = 'nn'
 lr = 0.01
 wd = 0.0005
 
@@ -31,13 +32,45 @@ simple_channels = 16
 complex_channels = 16
 ksize = 5
 
+#%% optional: check to see if the frozen weights are actually frozen
+# we can do this by comparing the frozen weights against the pre-trained weights
+load_folder = os.path.join('..', 'code', 'saved_model_weights')
+frozen_model = {'name': 'convnet3', 'seed': '17', 'type': 'frozen'}
+pretrained_model = {'name': 'convnet', 'seed': '1', 'type': 'pretrained'}
+
+conv_1 = nn.Conv2d(in_channels=1, out_channels=simple_channels+complex_channels, kernel_size=ksize, stride=2, padding=ksize//2)
+model = Net(conv_1, simple_channels + complex_channels, normalize=norm_method, norm_position=norm_position)
+
+extracted_weights = {}
+for i in [frozen_model, pretrained_model]:
+    name = i['name']
+    seed = i['seed']
+    type = i['type']
+    loaded_model_path = os.path.join(load_folder, f'{name}-lr_{str(lr)}-wd_{str(wd)}-seed_{seed}-normalize_{norm_method}.pth')
+    weights = torch.load(loaded_model_path, map_location=device)
+
+    # load conv_1 weights from pre-trained model 
+    extracted_weights[f'{type}-conv_1.weight'] = weights['conv_1.weight']
+    extracted_weights[f'{type}-conv_1.bias'] = weights['conv_1.bias']
+
+print(extracted_weights[f'frozen-conv_1.weight'][0])
+print(extracted_weights[f'pretrained-conv_1.weight'][0])
+
+
+
 #%% load data
-if model_name == 'convnet':
+if model_name == 'convnet' or model_name[:7]=='convnet':
     save_folder = os.path.join(model_name)
 
-    if frontend=='learned_conv':
+    if frontend=='learned_conv' or frontend == 'frozen_conv':
         conv_1 = nn.Conv2d(in_channels=1, out_channels=simple_channels+complex_channels, kernel_size=ksize, stride=2, padding=ksize//2)
-        model = Net(conv_1, simple_channels + complex_channels, normalize=norm_method, norm_position=norm_position)
+        
+        if norm_position == '1':
+            model = Net_1(conv_1, simple_channels + complex_channels, normalize=norm_method)
+        if norm_position == '2':
+            model = Net_2(conv_1, simple_channels + complex_channels, normalize=norm_method)
+        if norm_position == 'both':
+            model = Net(conv_1, simple_channels + complex_channels, normalize=norm_method)
     elif frontend=='vone_filterbank':
         model = VOneNet(simple_channels=simple_channels, complex_channels=complex_channels, norm_method=norm_method, norm_position=norm_position)
 
@@ -49,7 +82,7 @@ model.eval()
 
 
 #%% extract model frontend (layer 1) filters
-if frontend == 'learned_conv':
+if frontend == 'learned_conv' or frontend == 'frozen_conv':
     filters = model.conv_1
     print('first filter layer:', filters)
     weights = filters.weight

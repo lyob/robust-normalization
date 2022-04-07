@@ -9,7 +9,7 @@ import sys
 sys.path.insert(0,'..')
 os.chdir('..')
 
-from mnist_layer_norm import Net, Net_1, Net_2
+from mnist_layer_norm import Net, Net_both, Net_1, Net_2
 from vonenet.vonenet import VOneNet
 
 os.chdir('../results')
@@ -21,7 +21,7 @@ model_name = 'convnet3'
 # frontend = 'vone_filterbank'  # learned_conv or vone_filterbank
 frontend = 'learned_conv'  # learned_conv or vone_filterbank or frozen_conv
 # frontend = 'frozen_conv'  # learned_conv or vone_filterbank or frozen_conv
-norm_position = '1'
+norm_position = 'both'
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 seed = 17
 norm_method = 'nn'
@@ -36,11 +36,13 @@ ksize = 5
 # we can do this by comparing the frozen weights against the pre-trained weights
 load_folder = os.path.join('..', 'code', 'saved_model_weights')
 frozen_model = {'name': 'convnet3', 'seed': '17', 'type': 'frozen'}
-pretrained_model = {'name': 'convnet', 'seed': '1', 'type': 'pretrained'}
+pretrained_model = {'name': 'convnet3', 'seed': '17', 'type': 'pretrained'}
 
 conv_1 = nn.Conv2d(in_channels=1, out_channels=simple_channels+complex_channels, kernel_size=ksize, stride=2, padding=ksize//2)
-model = Net(conv_1, simple_channels + complex_channels, normalize=norm_method, norm_position=norm_position)
+# model = Net(conv_1, simple_channels + complex_channels, norm_method=norm_method, norm_position=norm_position)
+model = Net_both(conv_1, simple_channels + complex_channels)
 
+#%%
 extracted_weights = {}
 for i in [frozen_model, pretrained_model]:
     name = i['name']
@@ -70,7 +72,7 @@ if model_name == 'convnet' or model_name[:7]=='convnet':
         if norm_position == '2':
             model = Net_2(conv_1, simple_channels + complex_channels, normalize=norm_method)
         if norm_position == 'both':
-            model = Net(conv_1, simple_channels + complex_channels, normalize=norm_method)
+            model = Net_both(conv_1, simple_channels + complex_channels, normalize=norm_method)
     elif frontend=='vone_filterbank':
         model = VOneNet(simple_channels=simple_channels, complex_channels=complex_channels, norm_method=norm_method, norm_position=norm_position)
 

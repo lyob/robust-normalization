@@ -6,7 +6,6 @@ import os
 import pickle
 import pandas as pd
 import seaborn as sns
-from cycler import cycler
 
 #%%
 # parameters
@@ -16,17 +15,38 @@ model_name = "convnet4"
 frontend = 'learned_conv'
 # frontend = 'frozen_conv'
 norm_position = 'both'
-# seed = [1,2,3,4,5]
-seed = [17]
+seed = [1,2,3,4,5, 17]
+# seed = [2,3]
 lr = 0.01
 wd = 0.0005
 
 if dataset=="mnist":
     # normalize = ["lrnb", "lrns", "gn", "ln", "nn", "lrnc", "in", "bn"]
-    normalize = ["bn", "gn", "in", "ln", "lrnc", "lrns", "lrnb", "nn"]
+    normalize = ["bn", "gn", "in", "ln", "lrnc", "lrns", "lrnb"]
+    normalize = ["bn", "gn", "in", "ln", "lrns", "lrnb"]
+    normalize = ["bn", "gn", "in", "ln", "lrnc", "lrns", "lrnb", 'nn']
+    normalize = ['nn']
     eps = [0.01, 0.03, 0.05, 0.07, 0.1, 0.15, 0.2]
     eps_plot = eps.copy()
     eps_plot.insert(0, 0)
+
+    # set color palette, and set last color to black
+    # palette = sns.diverging_palette(220, 20, n=len(results))
+    palette_all = {
+        "bn": (0.24715576253545807, 0.49918708160096675, 0.5765599057376697),
+        "gn": (0.44221678412697046, 0.6256298550214647, 0.6823748435735669),
+        "in": (0.6453947655470793, 0.757334217374988, 0.792592996324836),
+        "ln": (0.924371914496006, 0.8581356111320103, 0.8422135595757048),
+        "lrnc":(0.8714732581609897, 0.6860920090908339, 0.6395837763165448),
+        "lrns":(0.8163733610811298, 0.5068892575940598, 0.4285220787909039),
+        "lrnb":(0.7634747047461135, 0.3348456555528834, 0.225892295531744),
+        "nn":(0., 0., 0.)
+    }
+    palette = []
+    for n in normalize:
+        palette.append(palette_all[n])
+    print(palette)
+
 elif dataset=="cifar":
     normalize = ["nn", "lrnb", "lrnc", "lrns", "ln", "bn", "gn", "in"]
     eps = [1.0, 2.0, 4.0, 6.0, 8.0]
@@ -70,7 +90,7 @@ else:
 
 # %%
 print(results.keys())
-print(results['nn'])
+# print(results['bn'])
 
 
 #%% plot the data
@@ -79,40 +99,41 @@ fig, ax = plt.subplots(1, 1, figsize=(8, 6))
 
 if type(seed)==list:
     df = pd.DataFrame(results)
-    df2 = pd.DataFrame(columns=['norm method', 'eps', 'mean', 'sd'])
+    # df2 = pd.DataFrame(columns=['norm method', 'eps', 'mean', 'sd'])
+    df2 = pd.DataFrame(columns=['norm method', 'eps', 'seed', 'acc'])
 
     for _, norm_method in enumerate(normalize):
         for j in range(len(eps_plot)):
-            one_nm_one_eps = np.array([df[norm_method][i][j] for i in df.axes[0]])
-            mean = one_nm_one_eps.mean()
-            sd = one_nm_one_eps.std()
+            for i in df.axes[0]:
+                one_nm_one_eps_one_seed = df[norm_method][i][j]
 
-            new_data = pd.DataFrame({'norm method': [norm_method], 'eps': [eps_plot[j]], 'mean': [mean], 'sd': [sd]})
-            df2 = df2.append(new_data, ignore_index=True)
-
-    df2 = df2.groupby(['eps', 'norm method']).mean().sort_values(by=['eps'])
-
-    palette = sns.diverging_palette(220, 20, n=len(results))
-    print(palette)
-    palette.insert(-1, (0,0,0))
-    palette.pop()
+                new_data = pd.DataFrame({'norm method': [norm_method], 'eps': [eps_plot[j]], 'seed': [i], 'acc': [one_nm_one_eps_one_seed]})
+                df2 = df2.append(new_data, ignore_index=True)
 
     ax = sns.lineplot(
         data=df2,
         x='eps',
-        y='mean',
+        # y='mean',
+        y='acc',
         hue='norm method',
+        style='norm method',
         ax=ax,
-        ci='sd',
         palette=palette,
-        hue_order=normalize
+        ci='sd',
+        err_style='band',
+        markers= True,
+        dashes=False,
+        hue_order=normalize,
+        markersize=8
     )
     sns.despine()
     if norm_position != 'both':
         norm_statement = f'normalization at layer {norm_position} only'
     else:
         norm_statement = f'normalization at both (1&2) layers'
-    ax.set(xlabel="attack strength", ylabel="accuracy", title=f'{model_name} with {frontend} frontend, {norm_statement}. \nseeds = {seed}')
+    ax.set(xlabel="attack strength", ylabel="accuracy")
+    # ax.set(title=f'{model_name} with {frontend} frontend, {norm_statement}. \nseeds = {seed}')
+    ax.set(title=f'convnet trained on MNIST, seed={seed}')
     plt.xticks((0, 0.05, 0.1, 0.15, 0.2))
 
             
@@ -143,3 +164,5 @@ plt.savefig(save_name, dpi=400, facecolor='white', bbox_inches='tight', transpar
 # %%
 
 
+
+# %%

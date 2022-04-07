@@ -15,7 +15,7 @@ from art.attacks.evasion import ProjectedGradientDescent, FastGradientMethod
 from art.estimators.classification import PyTorchClassifier, EnsembleClassifier
 from art.utils import load_mnist
 
-from mnist_layer_norm import Net, Net_1, Net_2
+from mnist_layer_norm import Net, Net_both, Net_1, Net_2
 from vonenet.vonenet import VOneNet
 
 folder_path = '..'
@@ -60,7 +60,7 @@ def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method
     
     if model_name == 'standard':
         conv_1 = nn.Conv2d(in_channels=1, out_channels=simple_channels+complex_channels, kernel_size=ksize, stride=2, padding=ksize//2)
-        model = Net(conv_1, simple_channels + complex_channels, normalize=norm_method)
+        model = Net_both(conv_1, simple_channels + complex_channels, normalize=norm_method)
 
     if model_name == 'convnet' or model_name == 'convnet2' or model_name == 'convnet3' or model_name == 'convnet4':
         if frontend=='vone_filterbank':
@@ -70,7 +70,7 @@ def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method
             conv_1 = nn.Conv2d(in_channels=1, out_channels=simple_channels+complex_channels, kernel_size=ksize, stride=2, padding=ksize//2)
             
             if norm_position == 'both':
-                model = Net(conv_1, simple_channels + complex_channels, normalize=norm_method)
+                model = Net(conv_1, simple_channels + complex_channels, norm_method=norm_method, norm_position=norm_position)
             if norm_position == '1':
                 model = Net_1(conv_1, simple_channels + complex_channels, normalize=norm_method)
             if norm_position == '2':

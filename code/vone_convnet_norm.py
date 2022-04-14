@@ -189,17 +189,18 @@ if __name__ == '__main__':
     parser.add_argument('--model_name',help='Model name')
     parser.add_argument('--seed', help='Fix seed for reproducibility',type=int)
     # parser.add_argument('--learning_rate', help='Learning rate to train model', type=float)
-    # parser.add_argument('--weight_decay', help='Amount of weight decay (L2 regularizer)', type=float)
+    parser.add_argument('--weight_decay', help='Amount of weight decay (L2 regularizer)', type=float)
     parser.add_argument('--normalize', help='norm_method Type')
     parser.add_argument('--mode', help='Mode to run, choose from (train), (val), (extract)',default='train')
     parser.add_argument('--eps', help="Adversarial attack strength")
 
-    torch.autograd.set_detect_anomaly(True)
+    # torch.autograd.set_detect_anomaly(True)
+    args = parser.parse_args()
 
-    weight_decay=0.0005
+    # weight_decay=0.0005
+    weight_decay=args.weight_decay
     learning_rate=0.01
 
-    args = parser.parse_args()
     eps = args.eps.split("_")
     save_folder = os.path.join(args.save_folder, args.model_name)
     if not os.path.exists(save_folder):

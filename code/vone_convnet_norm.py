@@ -15,7 +15,7 @@ from art.attacks.evasion import ProjectedGradientDescent, FastGradientMethod
 from art.estimators.classification import PyTorchClassifier, EnsembleClassifier
 from art.utils import load_mnist
 
-from mnist_layer_norm import Net, Net_both, Net_1, Net_2
+from mnist_layer_norm import Net_both, Net_1, Net_2
 from vonenet.vonenet import VOneNet
 
 folder_path = '..'

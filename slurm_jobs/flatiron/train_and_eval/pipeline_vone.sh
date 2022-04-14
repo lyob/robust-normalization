@@ -2,30 +2,16 @@
 PARAM_FILE="mnist_param.txt"
 
 SAVE_FOLDER="results/"
+
 MODEL_NAME=("convnet4") #mode of the model, can be "standard" or "convnet" or "convnet2" //// "vone_convnet-layer1_norm" or vone_convnet-layer1_norm-relu_last
-
-FRONTENDS=("learned_conv") # vone_filterbank or learned_conv or frozen_conv
-# FRONTENDS=("frozen_conv") 
-# FRONTENDS=("vone_filterbank")
-
-# NORM_POSITIONS=("1") # 1, 2, or both
-NORM_POSITIONS=("both") # 1, 2, or both
-
-# SEEDS=("1 2 3 4 5")
-SEEDS=("17")
-
+FRONTENDS=("frozen_conv") # vone_filterbank or learned_conv or frozen_conv
+NORM_POSITIONS=("1") # 1, 2, or both
+SEEDS=("1 2 3 4 5")
 MODES=("val") #mode can be 'train', 'val'
-# LEARNING_RATES=("0.01")
-# WEIGHT_DECAYS=("0.0005")
-
-# NORMALIZES=("nn" "bn" "ln" "in" "gn" "lrnc" "lrns" "lrnb")
-# NORMALIZES=("nn" "bn" "in" "ln" "gn" "lrnc" "lrns")
 NORMALIZES=("bn gn in ln lrnb lrnc lrns nn")
-# NORMALIZES=("lrnb lrnc lrns nn")
 # NORMALIZES=("nn")
 
 EPS=("0.01_0.03_0.05_0.07_0.1_0.15_0.2")
-#EPS=("1.0")
 
 > ${PARAM_FILE}
 for MODEL in ${MODEL_NAME[@]};do

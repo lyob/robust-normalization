@@ -3,7 +3,7 @@
 #SBATCH -p genx # a small job with...
 #SBATCH -c 1 # ...one core
 #SBATCH -t 10:00:00
-#SBATCH --mem=16G
+#SBATCH --mem=8G
 #SBATCH --job-name=normalize
 #SBATCH --output ./out/mnist/out.%j.%a.%N.out -e ./err/mnist/err.%j.%a.%N.err
 

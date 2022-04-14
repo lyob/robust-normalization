@@ -1,18 +1,16 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
 
 import numpy as np
 import argparse
 import os
 import pickle
-import h5py as h5
 import sys
 sys.path.insert(0,'..')
 
-from art.attacks.evasion import ProjectedGradientDescent, FastGradientMethod
-from art.estimators.classification import PyTorchClassifier, EnsembleClassifier
+from art.attacks.evasion import ProjectedGradientDescent
+from art.estimators.classification import PyTorchClassifier
 from art.utils import load_mnist
 
 from mnist_layer_norm import Net_both, Net_1, Net_2
@@ -29,7 +27,6 @@ def seed_everything(seed: int):
     np.random.seed(seed)
     random.seed(seed)
     os.environ['PYTHONHASHSEED'] = str(seed)
-    torch.manual_seed(seed)
     # torch.backends.cudnn.benchmark = False
     # torch.backends.cudnn.deterministic = True
     # torch.use_deterministic_algorithms()
@@ -62,15 +59,13 @@ def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method
         conv_1 = nn.Conv2d(in_channels=1, out_channels=simple_channels+complex_channels, kernel_size=ksize, stride=2, padding=ksize//2)
         model = Net_both(conv_1, simple_channels + complex_channels, normalize=norm_method)
 
-    if model_name == 'convnet' or model_name == 'convnet2' or model_name == 'convnet3' or model_name == 'convnet4':
-        if frontend=='vone_filterbank':
-            model = VOneNet(simple_channels=simple_channels, complex_channels=complex_channels, norm_method=norm_method)
-        
-        elif frontend=='learned_conv' or frontend=='frozen_conv':
+    if model_name == 'convnet' or model_name[:7] == 'convnet':
+
+        if frontend=='learned_conv' or frontend=='frozen_conv':
             conv_1 = nn.Conv2d(in_channels=1, out_channels=simple_channels+complex_channels, kernel_size=ksize, stride=2, padding=ksize//2)
             
             if norm_position == 'both':
-                model = Net(conv_1, simple_channels + complex_channels, norm_method=norm_method, norm_position=norm_position)
+                model = Net_both(conv_1, simple_channels + complex_channels, normalize=norm_method)
             if norm_position == '1':
                 model = Net_1(conv_1, simple_channels + complex_channels, normalize=norm_method)
             if norm_position == '2':
@@ -91,6 +86,10 @@ def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method
                 # also set the requires_grad flag of the weight and bias to False, just in case
                 model.conv_1.weight.requires_grad = False
                 model.conv_1.bias.requires_grad = False
+    
+        if frontend=='vone_filterbank':
+            model = VOneNet(simple_channels=simple_channels, complex_channels=complex_channels, norm_method=norm_method)
+        
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=wd)

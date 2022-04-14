@@ -33,6 +33,11 @@ class LRN(nn.Module):
         x = x.div(div)
         return x
 
+
+
+'''
+start of refactor
+'''
 class BatchNorm(nn.Module):
     def __init__(self, layer, in_channels):
         super(BatchNorm, self).__init__()
@@ -136,11 +141,11 @@ class Net(nn.Module):
         # third layer
         x = self.fc_1(x)
         return x
+'''
+end of refactor
+'''
 
 
-
-
-##########
 
 class Net_both(nn.Module):
     def __init__(self, conv_1, in_channels, normalize=None):

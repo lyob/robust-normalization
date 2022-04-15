@@ -1,3 +1,5 @@
+from timeit import default_timer as timer
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -103,13 +105,18 @@ def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method
             input_shape=(1, 28, 28),
             nb_classes=10,
         )
-    
+        print(timer() - start)
+        print('we are now training the model!')
         classifier.fit(x_train, y_train, batch_size=64, nb_epochs=5)
-  
+        print(timer() - start)
+        print('training complete!')
+
         # to speed things up a bit let's just do evaluation on 1000 images. Final analysis ideally on full test set.
         n_images = 10000
+        print('we are now testing the model!')
         predictions = classifier.predict(x_test[:n_images])
         accuracy = np.sum(np.argmax(predictions, axis=1) == np.argmax(y_test[:n_images], axis=1)) / len(y_test[:n_images])
+        print(timer() - start)
         print("Accuracy on benign test examples: {}%".format(accuracy * 100))
 
         model_folder_name = f'{frontend}_frontend-norm_{norm_position}'
@@ -144,14 +151,18 @@ def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method
             nb_classes=10,)
         
         n_images = 1000
+        
         predictions = classifier.predict(x_test)
         accuracy = np.sum(np.argmax(predictions, axis=1) == np.argmax(y_test, axis=1)) / len(y_test)
+        
         print("Accuracy on benign test examples: {}%".format(accuracy * 100), flush=True)
         
         to_save = {}
         to_save['clean'] = accuracy
         record = np.zeros((len(eps)))
         
+        print(timer() - start)
+        print('starting the validation')
         for ep_idx in range(len(eps)):
             ep = eps[ep_idx]
             print("Attack Strength: ", ep, flush=True)
@@ -167,6 +178,7 @@ def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method
             accuracy = np.sum(np.argmax(predictions, axis=1) == np.argmax(y_test[:n_images], axis=1)) / len(y_test[:n_images])
             print(f"Accuracy on adversarial test examples: {accuracy*100}",flush=True)
             record[ep_idx] = accuracy
+        print(timer() - start)
         eps = [str(i) for i in eps]
         save_path_eval = os.path.join(save_folder, 'eval_models', model_folder_name)
         if not os.path.exists(save_path_eval):
@@ -182,6 +194,9 @@ def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method
 
 if __name__ == '__main__':
     print("we are running!", flush=True)
+    global start
+    start = timer()
+
     parser = argparse.ArgumentParser(description='Run MNIST experiments on batchNorm, L2-regularizer and noise...')
     parser.add_argument('--save_folder',help='The folder to save model')
     parser.add_argument('--frontend', help='vone_frontend or learned_conv_frontend')

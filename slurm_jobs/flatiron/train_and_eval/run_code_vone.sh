@@ -7,9 +7,9 @@ MODEL=$4
 SEED=$5
 MODE=$6
 # LEARNING_RATE=$7
-# WEIGHT_DECAY=$8
 NORMALIZE=$7
 EP=$8
+WEIGHT_DECAY=$9
 
 cd /mnt/home/blyo1/ceph/syLab/robust-normalization/code/;
 source /mnt/home/blyo1/miniconda3/etc/profile.d/conda.sh
@@ -24,5 +24,5 @@ python3 vone_convnet_norm.py \
 	--mode ${MODE} \
 	--eps ${EP} \
 	--normalize ${NORMALIZE} \
+	--weight_decay ${WEIGHT_DECAY} \
 	# --learning_rate ${LEARNING_RATE} \
-	# --weight_decay ${WEIGHT_DECAY} \

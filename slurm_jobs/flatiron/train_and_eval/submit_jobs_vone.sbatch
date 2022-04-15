@@ -1,11 +1,14 @@
 #!/bin/bash
 #SBATCH -n 1 # one node
-#SBATCH -p genx # a small job with...
-#SBATCH -c 1 # ...one core
-#SBATCH -t 10:00:00
-#SBATCH --mem=8G
+#SBATCH -p ccn # CCN partition
+#SBATCH -c 1 # one core
+#SBATCH --cpus-per-task 1 
+
+#SBATCH -t 1:00:00
+#SBATCH --mem=4G
 #SBATCH --job-name=normalize
-#SBATCH --output ./out/mnist/out.%j.%a.%N.out -e ./err/mnist/err.%j.%a.%N.err
+#SBATCH --output ./out/mnist/out.%j.%a.%N.out 
+#SBATCH -e ./err/mnist/err.%j.%a.%N.err
 
 ARRAY_ID=$1
 PARAMETER_FILE=$2

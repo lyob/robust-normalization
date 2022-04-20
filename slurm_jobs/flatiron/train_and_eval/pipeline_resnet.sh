@@ -17,13 +17,11 @@ for MODEL in ${MODEL_NAME[@]};do
 	for SEED in ${SEEDS[@]};do
 		for MODE in ${MODES[@]};do
 			# for FRONTEND in ${FRONTENDS[@]};do
-				# for NORM_POSITION in ${NORM_POSITIONS[@]};do
-					for NORMALIZE in ${NORMALIZES[@]};do
-						for EP in ${EPS[@]};do
-							for WEIGHT_DECAY in ${WEIGHT_DECAYS[@]};do
-								echo "${SAVE_FOLDER} ${MODEL} ${SEED} ${MODE} ${NORMALIZE} ${EP} ${WEIGHT_DECAY}" >> ${PARAM_FILE}
-							done
-						done
+			# for NORM_POSITION in ${NORM_POSITIONS[@]};do
+			for NORMALIZE in ${NORMALIZES[@]};do
+				for EP in ${EPS[@]};do
+					for WEIGHT_DECAY in ${WEIGHT_DECAYS[@]};do
+						echo "${SAVE_FOLDER} ${MODEL} ${SEED} ${MODE} ${NORMALIZE} ${EP} ${WEIGHT_DECAY}" >> ${PARAM_FILE}
 					done
 				done
 			done

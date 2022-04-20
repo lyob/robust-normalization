@@ -8,7 +8,8 @@ WEIGHT_DECAYS=("0.0005")
 # SEEDS=("1 2 3 4 5")
 SEEDS=("1")
 # NORMALIZES=('bn' 'gn' 'in' 'ln' 'lrnb' 'lrnc' 'lrns' 'nn')
-NORMALIZES=('bn gn in ln lrnb lrnc lrns nn')
+# NORMALIZES=('bn gn in ln lrnb lrnc lrns nn')
+NORMALIZES=('nn')
 
 EPS=("1.0_2.0_4.0_6.0_8.0") # cifar
 

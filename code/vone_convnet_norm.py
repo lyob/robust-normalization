@@ -189,7 +189,8 @@ def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method
             os.makedirs(save_path_eval, exist_ok=True)
         # save_name_eval = os.path.join(save_path_eval, model_name + '-lr_' + str(lr) + '-wd_' + str(wd) + '-ev_seed_' + str(eval_seed) + '-tr_seed_' + str(seed) + 
         # '-normalize_' + norm_method + '-eps_' + '_'.join(eps) + '.pkl')
-        save_name_eval = os.path.join(save_path_eval, f'model_name-lr_{lr}-wd_{wd}-ev_seed_{eval_seed}-tr_seed_{seed}-normalize_{norm_method}-eps_{'_'.join(eps)}.pkl')
+        eps_str = '_'.join(eps)
+        save_name_eval = os.path.join(save_path_eval, f'model_name-lr_{lr}-wd_{wd}-ev_seed_{eval_seed}-tr_seed_{seed}-normalize_{norm_method}-eps_{eps_str}.pkl')
         
         to_save['perturbed'] = record
         save_file = open(save_name_eval, 'wb')

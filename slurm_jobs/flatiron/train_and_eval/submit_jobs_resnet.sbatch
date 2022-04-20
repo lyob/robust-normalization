@@ -1,13 +1,12 @@
 #!/bin/bash
 #SBATCH -n 1 # one node
-#SBATCH -p ccn # CCN partition
-#SBATCH -c 1 # one core
+#SBATCH -p gpu --gpus=1 -c 1 --gpus-per-task=1 --constraint=v100
 
 #SBATCH -t 1:00:00
-#SBATCH --mem=2G
-#SBATCH --job-name=normalize
-#SBATCH --output ./out/mnist/out.%j.%a.%N.out 
-#SBATCH -e ./err/mnist/err.%j.%a.%N.err
+#SBATCH --mem=8G
+#SBATCH --job-name=resnorm
+#SBATCH --output ./out/resnet/out.%j.%a.%N.out 
+#SBATCH -e ./err/resnet/err.%j.%a.%N.err
 
 ARRAY_ID=$1
 PARAMETER_FILE=$2

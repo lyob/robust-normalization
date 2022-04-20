@@ -61,7 +61,7 @@ def import_trained_model(n, dataset_name):
         arch = ResNet(BasicBlock, [2,2,2,2], normalize=n)
 
         # load dataset
-        ds = CIFAR(data_path='../../datasests/')
+        ds = CIFAR(data_path='../../datasets/')
         
         # load previously saved model
         model = attacker.AttackerModel(arch, ds)

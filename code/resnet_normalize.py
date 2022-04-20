@@ -26,9 +26,14 @@ from cifar_layer_norm import ResNet, BasicBlock
 from cox.utils import Parameters
 import cox.store
 
-feature_bank = []
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-print('Using device:', device, flush=True)
+def seed_everything(seed: int):
+    import random
+    #initiate seed to try to make the result reproducible 
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
 
 #hook to extract input of module
 def hook_fn_in(module,inp,outp):
@@ -134,7 +139,7 @@ def main(save_folder, model_name, seed, cluster, mode='train', normalize='nn', w
     if mode == 'val' or mode == 'extract':
         eps = [float(i) for i in eps]
         eps_cifar = [i/255.0 for i in eps] 
-        save_path = os.path.join(save_folder,'trained_models')
+        save_path = os.path.join(save_folder, 'trained_models')
         save_name = os.path.join(save_path, model_name, save_name_base, 'checkpoint.pt.best')
         model = load_model(ds, normalize=normalize, weight=save_name)
 
@@ -238,15 +243,28 @@ if __name__ == '__main__':
     parser.add_argument('--save_folder',help='The folder to save model')
     parser.add_argument('--model_name',help='Model name')
     parser.add_argument('--seed', help='Fix seed for reproducibility',type=int)
-    parser.add_argument('--mode', help='Mode to run, choose from (train), (val), (extract)',default='train')
     parser.add_argument('--attack_mode',help='Type of adversarial attack. Choose from inf, 1, 2',default='inf')
-    parser.add_argument('--normalize',help='The type of normalization to use.')
     parser.add_argument('--weight_decay',help='Weight decay for optimizer', type=float)
+    parser.add_argument('--normalize',help='The type of normalization to use.')
+    parser.add_argument('--mode', help='Mode to run, choose from (train), (val), (extract)',default='train')
     parser.add_argument('--eps',help='Epsilon for adversarial attack')
-    parser.add_argument('--learning_rate',help='The learning rate for the optimizer')
+    # parser.add_argument('--learning_rate',help='The learning rate for the optimizer')
+
     args = parser.parse_args()
+    learning_rate = 0.01
     eps = args.eps.split('_')
 
-    save_folder = os.path.join(args.save_folder, 'cifar_regularize')
-    main(save_folder, args.model_name, int(args.seed), mode=args.mode, normalize= args.normalize,
+    save_folder = os.path.join(args.save_folder, args.model_name)
+    if not os.path.exists(save_folder):
+        os.makedirs(save_folder, exist_ok=True)
+    seed_everything(args.seed)
+
+    global device
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print('Using device:', device, flush=True)
+
+    global feature_bank
+    feature_bank = []
+
+    main(save_folder, args.model_name, args.seed, mode=args.mode, normalize= args.normalize,
          weight_decay=args.weight_decay, attack_mode=args.attack_mode, eps=eps, cluster=args.cluster)

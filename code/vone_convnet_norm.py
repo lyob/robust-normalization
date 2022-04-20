@@ -105,10 +105,10 @@ def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method
             input_shape=(1, 28, 28),
             nb_classes=10,
         )
-        print(timer() - start)
+        # print(timer() - start)
         print('we are now training the model!')
         classifier.fit(x_train, y_train, batch_size=64, nb_epochs=5)
-        print(timer() - start)
+        # print(timer() - start)
         print('training complete!')
 
         # to speed things up a bit let's just do evaluation on 1000 images. Final analysis ideally on full test set.
@@ -116,7 +116,7 @@ def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method
         print('we are now testing the model!')
         predictions = classifier.predict(x_test[:n_images])
         accuracy = np.sum(np.argmax(predictions, axis=1) == np.argmax(y_test[:n_images], axis=1)) / len(y_test[:n_images])
-        print(timer() - start)
+        # print(timer() - start)
         print("Accuracy on benign test examples: {}%".format(accuracy * 100))
 
         model_folder_name = f'{frontend}_frontend-norm_{norm_position}'
@@ -134,10 +134,14 @@ def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method
         pickle.dump(record,open(save_name_record,'wb'))
         
     if mode == 'val':
+        # training_seed = 3  # if I want to hold the training seed constant
+        eval_seed = 3  # hold the eval seed constant, while the seed indicates the training seed
+
+        # load the trained weights
         eps = [float(i) for i in eps]
         model_folder_name = f'{frontend}_frontend-norm_{norm_position}'
         save_path = os.path.join(save_folder, 'trained_models', model_folder_name)
-        save_name = os.path.join(save_path, f'{model_name}-lr_{str(lr)}-wd_{str(wd)}-seed_{str(seed)}-normalize_{norm_method}.pth')
+        save_name = os.path.join(save_path, f'{model_name}-lr_{lr}-wd_{wd}-seed_{seed}-normalize_{norm_method}.pth')
         model.load_state_dict(torch.load(save_name, map_location=device))
         print('device is', device)
         model.eval()
@@ -161,7 +165,7 @@ def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method
         to_save['clean'] = accuracy
         record = np.zeros((len(eps)))
         
-        print(timer() - start)
+        # print(timer() - start)
         print('starting the validation')
         for ep_idx in range(len(eps)):
             ep = eps[ep_idx]
@@ -178,13 +182,14 @@ def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method
             accuracy = np.sum(np.argmax(predictions, axis=1) == np.argmax(y_test[:n_images], axis=1)) / len(y_test[:n_images])
             print(f"Accuracy on adversarial test examples: {accuracy*100}",flush=True)
             record[ep_idx] = accuracy
-        print(timer() - start)
+        # print(timer() - start)
         eps = [str(i) for i in eps]
         save_path_eval = os.path.join(save_folder, 'eval_models', model_folder_name)
         if not os.path.exists(save_path_eval):
             os.makedirs(save_path_eval, exist_ok=True)
-        save_name_eval = os.path.join(save_path_eval, model_name + '-lr_' + str(lr) + '-wd_' + str(wd) + '-seed_' + str(seed) + 
-        '-normalize_' + norm_method + '-eps_' + '_'.join(eps) + '.pkl')
+        # save_name_eval = os.path.join(save_path_eval, model_name + '-lr_' + str(lr) + '-wd_' + str(wd) + '-ev_seed_' + str(eval_seed) + '-tr_seed_' + str(seed) + 
+        # '-normalize_' + norm_method + '-eps_' + '_'.join(eps) + '.pkl')
+        save_name_eval = os.path.join(save_path_eval, f'model_name-lr_{lr}-wd_{wd}-ev_seed_{eval_seed}-tr_seed_{seed}-normalize_{norm_method}-eps_{'_'.join(eps)}.pkl')
         
         to_save['perturbed'] = record
         save_file = open(save_name_eval, 'wb')
@@ -194,8 +199,8 @@ def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method
 
 if __name__ == '__main__':
     print("we are running!", flush=True)
-    global start
-    start = timer()
+    # global start
+    # start = timer()
 
     parser = argparse.ArgumentParser(description='Run MNIST experiments on batchNorm, L2-regularizer and noise...')
     parser.add_argument('--save_folder',help='The folder to save model')

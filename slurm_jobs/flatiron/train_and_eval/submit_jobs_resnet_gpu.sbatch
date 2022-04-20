@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -n 1 # one node
-#SBATCH -p cnn -c 1
+#SBATCH -p gpu --gpus=1 -c 1 --gpus-per-task=1 --constraint=v100
 
 #SBATCH -t 1:00:00
 #SBATCH --mem=8G

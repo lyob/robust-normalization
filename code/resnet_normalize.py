@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
 import pickle
+import dill
 import h5py as h5
 import os
 import argparse
@@ -16,7 +17,7 @@ from art.utils import load_cifar10
 
 # we use robustness (https://github.com/MadryLab/robustness) to train, evaluate, and explore neural networks. 
 # Read more at https://adversarial-robustness-toolbox.readthedocs.io/en/latest/.
-from robustness import model_utils, train, defaults
+from robustness import model_utils, train, defaults, attacker
 from robustness.datasets import CIFAR
 
 from cifar_layer_norm import ResNet, BasicBlock
@@ -48,13 +49,29 @@ def hook_fn(module,inp,outp):
 
 def load_model(dataset, weight=None, normalize='nn'):
     #Use ResNet18
-    model = ResNet(BasicBlock, [2,2,2,2], normalize=normalize)
-    if weight:  # load previously saved model
-        model, _ = model_utils.make_and_restore_model(arch=model, dataset=dataset,
-             resume_path=weight)
+    arch = ResNet(BasicBlock, [2,2,2,2], normalize=normalize)
+    
+    model = attacker.AttackerModel(arch, dataset)
+
+    if weight and os.path.isfile(weight):  # load previously saved model
+        # load saved weights
+        checkpoint = torch.load(weight, pickle_module=dill, map_location=device)
+        
+        sd = checkpoint["model"]
+        sd = {k[len('module.'):]:v for k,v in sd.items()}
+        model.load_state_dict(sd)
+        model.eval()
+        print(model.model)
+        # model = model.to(device)
+        print("=> loaded checkpoint '{}' (epoch {})".format(weight, checkpoint['epoch']))
+
         model = model.eval()
+    elif weight:
+        error_msg = f'=> no checkpoint found at {weight}'
+        raise ValueError(error_msg)
     else:  # create new model
-        model, _ = model_utils.make_and_restore_model(arch=model, dataset=dataset)
+        model = model
+        # model, _ = model_utils.make_and_restore_model(arch=model, dataset=dataset)
     return model
 
 
@@ -66,6 +83,7 @@ def main(save_folder, model_name, seed, cluster, mode='train', normalize='nn', w
         ds = CIFAR(data_path='/scratch/bl3021/research/sy-lab/robust-normalization/datasets/')  # nyu cluster
     if cluster=='flatiron':    
         ds = CIFAR(data_path='/mnt/ceph/users/blyo1/syLab/robust-normalization/datasets/')  # flatiron cluster
+        # df = CIFAR(data_path='../../datasets/')
     train_loader, val_loader = ds.make_loaders(batch_size=128, workers=8)
     save_name_base = f"{model_name}-normalize_{normalize}-wd_{weight_decay}-seed_{seed}"
     

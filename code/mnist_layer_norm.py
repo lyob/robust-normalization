@@ -148,21 +148,22 @@ end of refactor
 
 
 class Net_both(nn.Module):
-    def __init__(self, conv_1, in_channels, normalize=None):
+    def __init__(self, conv_1, in_channels, width_scale=1, normalize=None):
         super(Net_both, self).__init__()
+        self.width_scale = width_scale
         self.conv_1 = conv_1
-        self.conv_2 = nn.Conv2d(in_channels= in_channels, out_channels=20, kernel_size=5, stride=1)
-        self.fc_1 = nn.Linear(in_features=500, out_features=10)
+        self.conv_2 = nn.Conv2d(in_channels=in_channels, out_channels=20*self.width_scale, kernel_size=5, stride=1)
+        self.fc_1 = nn.Linear(in_features=500*self.width_scale, out_features=10)
         self.relu = nn.ReLU()
 
         self.bn1 = nn.BatchNorm2d(in_channels)
-        self.bn2 = nn.BatchNorm2d(20)
+        self.bn2 = nn.BatchNorm2d(20*self.width_scale)
         self.ln1 = nn.LayerNorm([in_channels, 14, 14])
-        self.ln2 = nn.LayerNorm([20, 10, 10])
+        self.ln2 = nn.LayerNorm([20*self.width_scale, 10, 10])
         self.in1 = nn.InstanceNorm2d(in_channels, affine=True)
-        self.in2 = nn.InstanceNorm2d(20, affine=True)
+        self.in2 = nn.InstanceNorm2d(20*self.width_scale, affine=True)
         self.gn1 = nn.GroupNorm(4, in_channels)
-        self.gn2 = nn.GroupNorm(4, 20)
+        self.gn2 = nn.GroupNorm(4, 20*self.width_scale)
 
         self.lrn = nn.LocalResponseNorm(5, alpha=0.001)
         self.lrn_channel = nn.LocalResponseNorm(5, alpha=0.001)

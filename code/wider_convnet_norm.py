@@ -111,12 +111,12 @@ def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method
         # print(timer() - start)
         print("Accuracy on benign test examples: {}%".format(accuracy * 100))
 
-        model_folder_name = f'{frontend}_frontend-norm_{norm_position}'
+        model_folder_name = f'{frontend}_frontend-norm_{norm_position}-ws_{width_scale}'
         save_path = os.path.join(save_folder, 'trained_models', model_folder_name)
         if not os.path.exists(save_path):
             os.makedirs(save_path, exist_ok=True)
 
-        save_name = os.path.join(save_path, f'{model_name}-lr_{str(lr)}-wd_{str(wd)}-seed_{str(seed)}-normalize_{norm_method}.pth')
+        save_name = os.path.join(save_path, f'{model_name}-lr_{lr}-wd_{wd}-seed_{seed}-normalize_{norm_method}-ws_{width_scale}.pth')
         torch.save(classifier.model.state_dict(), save_name)
         record = {}
         record['accuracy'] = accuracy

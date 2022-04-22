@@ -26,12 +26,12 @@ tr_seed = False
 lr = 0.01
 # wd = 0.0005
 # wd = [0.0, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1]
-wd = 0.0
+wd = 0.0005
 
 ws = [1.5, 2.0, 2.5, 3.0]
-ws = [3.0]
+ws = [2.0]
 normalize = ['nn', 'lrnb']
-normalize = ["bn", "in", "ln", "lrnc", "lrns", "lrnb", 'nn']
+normalize = ["bn", 'gn', "in", "ln", "lrnc", "lrns", "lrnb", 'nn']
 
 if dataset=="mnist":
     eps = [0.01, 0.03, 0.05, 0.07, 0.1, 0.15, 0.2]

@@ -131,9 +131,9 @@ def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method
 
         # load the trained weights
         eps = [float(i) for i in eps]
-        model_folder_name = f'{frontend}_frontend-norm_{norm_position}'
+        model_folder_name = f'{frontend}_frontend-norm_{norm_position}-ws_{width_scale}'
         save_path = os.path.join(save_folder, 'trained_models', model_folder_name)
-        save_name = os.path.join(save_path, f'{model_name}-lr_{lr}-wd_{wd}-seed_{seed}-normalize_{norm_method}.pth')
+        save_name = os.path.join(save_path, f'{model_name}-lr_{lr}-wd_{wd}-seed_{seed}-normalize_{norm_method}-ws_{width_scale}.pth')
         model.load_state_dict(torch.load(save_name, map_location=device))
         print('device is', device)
         model.eval()
@@ -182,7 +182,7 @@ def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method
         # save_name_eval = os.path.join(save_path_eval, model_name + '-lr_' + str(lr) + '-wd_' + str(wd) + '-ev_seed_' + str(eval_seed) + '-tr_seed_' + str(seed) + 
         # '-normalize_' + norm_method + '-eps_' + '_'.join(eps) + '.pkl')
         eps_str = '_'.join(eps)
-        save_name_eval = os.path.join(save_path_eval, f'model_name-lr_{lr}-wd_{wd}-ev_seed_{eval_seed}-tr_seed_{seed}-normalize_{norm_method}-eps_{eps_str}.pkl')
+        save_name_eval = os.path.join(save_path_eval, f'{model_name}-lr_{lr}-ws_{width_scale}-wd_{wd}-ev_seed_{eval_seed}-tr_seed_{seed}-normalize_{norm_method}-eps_{eps_str}.pkl')
         
         to_save['perturbed'] = record
         save_file = open(save_name_eval, 'wb')

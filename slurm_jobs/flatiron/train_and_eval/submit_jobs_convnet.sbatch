@@ -3,8 +3,8 @@
 #SBATCH -p ccn # CCN partition
 #SBATCH -c 1 # one core
 
-#SBATCH -t 1:00:00
-#SBATCH --mem=2G
+#SBATCH -t 2:00:00
+#SBATCH --mem=3G
 #SBATCH --job-name=normalize
 #SBATCH --output ./out/convnet/out.%j.%a.%N.out 
 #SBATCH -e ./err/convnet/err.%j.%a.%N.err

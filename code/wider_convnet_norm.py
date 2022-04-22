@@ -42,8 +42,8 @@ def calculate_norm(model):
                 norm_dict[name] = np.sum(np.sqrt(np.sum(param**2, axis=1)))
     return norm_dict
 
-def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method, norm_position):
-    print(f'Save folder: {save_folder}, model_name: {model_name}, frontend: {frontend}, seed: {seed}, mode: {mode}, lr: {lr}, wd: {wd}, norm_method: {norm_method}, norm_position: {norm_position}', flush=True)
+def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method, norm_position, width_scale=1):
+    print(f'Save folder: {save_folder}, model_name: {model_name}, frontend: {frontend}, seed: {seed}, mode: {mode}, lr: {lr}, wd: {wd}, norm_method: {norm_method}, norm_position: {norm_position}, width_scale: {width_scale}', flush=True)
     #load and process data
     (x_train, y_train), (x_test, y_test), min_pixel_value, max_pixel_value = load_mnist()
 
@@ -51,8 +51,7 @@ def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method
     x_test = np.swapaxes(x_test, 1, 3).astype(np.float32)
     simple_channels = 16
     complex_channels = 16
-    width_scale = 2  # scale parameter for controlling layer width
-    in_channels = (simple_channels + complex_channels) * width_scale
+    in_channels = int((simple_channels + complex_channels) * width_scale)
     ksize = 5
     
     if model_name == 'standard':
@@ -60,7 +59,6 @@ def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method
         model = Net_both(conv_1, simple_channels + complex_channels, normalize=norm_method)
 
     if model_name[:7] == 'convnet':
-
         if frontend=='learned_conv' or frontend=='frozen_conv':
             conv_1 = nn.Conv2d(in_channels=1, out_channels=in_channels, kernel_size=ksize, stride=2, padding=ksize//2)
             
@@ -208,6 +206,7 @@ if __name__ == '__main__':
     parser.add_argument('--normalize', help='norm_method Type')
     parser.add_argument('--mode', help='Mode to run, choose from (train), (val), (extract)',default='train')
     parser.add_argument('--eps', help="Adversarial attack strength")
+    parser.add_argument('--width_scale', help='scalar parameter for controlling the width of each layer', type=float)
 
     # torch.autograd.set_detect_anomaly(True)
     args = parser.parse_args()
@@ -225,4 +224,4 @@ if __name__ == '__main__':
     global device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    main(save_folder, args.frontend, args.model_name, args.seed, learning_rate, weight_decay, args.mode, eps, args.normalize, args.norm_position)
+    main(save_folder, args.frontend, args.model_name, args.seed, learning_rate, weight_decay, args.mode, eps, args.normalize, args.norm_position, args.width_scale)

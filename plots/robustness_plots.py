@@ -13,34 +13,32 @@ import seaborn as sns
 
 #%%
 # parameters
-dataset = 'cifar'  # mnist or cifar
-model_name = "resnet1"  # convnetX or resnetX
-# frontend = 'vone_filterbank' # vone_filterbank or learned_conv
+dataset = 'mnist'  # mnist or cifar
+model_name = "convnet_widthscale"  # convnetX or resnetX
+# frontend = 'vone_filterbank' # vone_filterbank or learned_conv or frozen_conv
 frontend = 'learned_conv'
-# frontend = 'frozen_conv'
 norm_position = 'both'
-seed = [1,2,3]
 seed = [1,2,3,4,5,6,7,8,9,10]
+seed = [1,2,3,4,5]
 
+tr_seed = [3]  # array or False
 tr_seed = False
-tr_seed = [3]
 lr = 0.01
 # wd = 0.0005
-wd = 0.0005
 # wd = [0.0, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1]
+wd = 0.0
+
+ws = [1.5, 2.0, 2.5, 3.0]
+ws = [3.0]
+normalize = ['nn', 'lrnb']
+normalize = ["bn", "in", "ln", "lrnc", "lrns", "lrnb", 'nn']
 
 if dataset=="mnist":
-    # normalize = ["lrnb", "lrns", "gn", "ln", "nn", "lrnc", "in", "bn"]
-    normalize = ["bn", "gn", "in", "ln", "lrnc", "lrns", "lrnb"]
-    normalize = ["bn", "gn", "in", "ln", "lrns", "lrnb"]
-    normalize = ['nn']
-    normalize = ["bn", "gn", "in", "ln", "lrnc", "lrns", "lrnb", 'nn']
     eps = [0.01, 0.03, 0.05, 0.07, 0.1, 0.15, 0.2]
     eps_plot = eps.copy()
     eps_plot.insert(0, 0)
 
 elif dataset=="cifar":
-    normalize = ["bn", "gn", "in", "ln", "lrnc", "lrns", "lrnb", 'nn']
     eps = [1.0, 2.0, 4.0, 6.0, 8.0]
     eps_plot = [i/255.0 for i in eps] 
     eps_plot.insert(0, 0)
@@ -65,6 +63,25 @@ for n in normalize:
 eps_name = [str(i) for i in eps]
 eps_name = '_'.join(eps_name)
 
+# #%% rename
+# if (model_name[:7]=='convnet'):
+#     for _, n in enumerate(normalize):
+#         if type(seed)==list:
+#             results_per_nm = {}
+#             for w in ws:
+#                 ws_string = f'-ws_{w}' if type(ws)==list else ''
+#                 print(ws_string)
+#                 if type(tr_seed)!=list:
+#                     print('NOT disentangling train and val mode, both seeds are the same')
+#                     for s in seed:
+#                         for d in wd:
+#                             file_path = os.path.join('..', 'results', f'{model_name}', 'eval_models', f'{frontend}_frontend-norm_{norm_position}{ws_string}')
+#                             file_name = os.path.join(file_path, f'model_name-lr_{lr}{ws_string}-wd_{d}-ev_seed_3-tr_seed_{s}-normalize_{n}-eps_{eps_name}.pkl')
+#                             if os.path.exists(file_name):
+#                                 file_name2 = os.path.join(file_path, f'{model_name}-lr_{lr}{ws_string}-wd_{d}-ev_seed_3-tr_seed_{s}-normalize_{n}-eps_{eps_name}.pkl')
+#                                 os.rename(file_name, file_name2)
+
+
 #%%
 # open results files 
 results = {}
@@ -72,11 +89,14 @@ if (model_name[:7]=='convnet'):
     for _, n in enumerate(normalize):
         if type(seed)==list:
             results_per_nm = {}
+            ws_string = f'-ws_{ws[0]}' if type(ws)==list else ''
+            print(ws_string)
             if type(tr_seed)!=list:
                 print('NOT disentangling train and val mode, both seeds are the same')
                 for s in seed:
-                    file_name = f'{model_name}-lr_{lr}-wd_{wd}-seed_{s}-normalize_{n}-eps_{eps_name}.pkl'
-                    file_path = os.path.join('..', 'results', f'{model_name}', 'eval_models', f'{frontend}_frontend-norm_{norm_position}', file_name)
+                    # file_name = f'{model_name}-lr_{lr}{ws_string}-wd_{wd}-seed_{s}-normalize_{n}-eps_{eps_name}.pkl'
+                    file_name = f'{model_name}-lr_{lr}{ws_string}-wd_{wd}-ev_seed_3-tr_seed_{s}-normalize_{n}-eps_{eps_name}.pkl'
+                    file_path = os.path.join('..', 'results', f'{model_name}', 'eval_models', f'{frontend}_frontend-norm_{norm_position}{ws_string}', file_name)
                     with open(file_path, 'rb') as f:
                         out = pickle.load(f)
                     results_per_nm[s] = list(out['perturbed'])
@@ -167,13 +187,17 @@ if type(seed)==list:
         plt.xticks((0, 0.05, 0.1, 0.15, 0.2))
         model = model_name[:7]
         dataset_name = 'mnist'
+        xlabel_info = ''
+        if type(ws)==list:
+            title_info = f'width scale = {ws[0]}'
     elif model_name[:6] == 'resnet':
         plt.xticks(eps_plot, labels=['0.0', '1.0', '2.0', '4.0', '6.0', '8.0'])
         model = model_name[:6]
         dataset_name = 'cifar-10'
-        xlabel_cifar = '(x/255)'
-    ax.set(xlabel=f"attack strength {xlabel_cifar}", ylabel="accuracy")
-    ax.set(title=f'{model} trained on {dataset_name}, seed={seed}\n weight decay = {wd}')
+        xlabel_info = '(x/255)'
+        ax.set_ylim(top=1.0)
+    ax.set(xlabel=f"attack strength {xlabel_info}", ylabel="accuracy")
+    ax.set(title=f'{model} trained on {dataset_name}, seed={seed}\n weight decay = {wd}, {title_info}')
 
             
 else:
@@ -195,12 +219,15 @@ else:
     ax.legend()
 
 if model=='convnet':
-    save_name = os.path.join('.', 'figures', f'robustness-{model_name}-{frontend}_frontend-norm_{norm_position}-seeds_{seed}-wd_{wd}.png')
+    save_path = os.path.join('.', 'figures', 'robustness-convnet_widthscale', f'ws-{ws[0]}')
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+    save_name = os.path.join(save_path, f'robustness-{model_name}-{frontend}_frontend-norm_{norm_position}-seeds_{seed}-wd_{wd}.png')
 elif model=='resnet':
     save_path = os.path.join('.', 'figures', f'{model}-robustness')
     if not os.path.exists(save_path):
         os.makedirs(save_path)
-    save_name = os.path.join(save_path, f'robustness-{model_name}-seeds_{seed}-wd_{wd}.png')
+    save_name = os.path.join(save_path, f'robustness-{model_name}-seeds_{seed}-wd_{wd}-nm_{normalize}.png')
 
 plt.savefig(save_name, dpi=400, facecolor='white', bbox_inches='tight', transparent=False)
 
@@ -239,7 +266,7 @@ for selected_nm in normalize:
         if not os.path.exists(save_folder):
             os.makedirs(save_folder, exist_ok=True)
         save_name = os.path.join(save_folder, f'per-seed-robustness-wd_{wd}-valseed_{seed}-trainseed_{tr_seed}.png')
-    plt.savefig(save_name, dpi=400, facecolor='white', bbox_inches='tight', transparent=False)
+    # plt.savefig(save_name, dpi=400, facecolor='white', bbox_inches='tight', transparent=False)
 
 # %%
 

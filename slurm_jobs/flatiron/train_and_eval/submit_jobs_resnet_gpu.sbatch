@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH -n 1 # one node
-#SBATCH -p gpu --gpus=1 -c 1 --gpus-per-task=1 --constraint=v100
+#SBATCH -p gpu --gpus=1 -c 12 --gpus-per-task=1 --constraint=a100
 
 #SBATCH -t 1:00:00
-#SBATCH --mem=8G
+#SBATCH --mem=32G
 #SBATCH --job-name=resnorm
 #SBATCH --output ./out/resnet/out.%j.%a.%N.out 
 #SBATCH -e ./err/resnet/err.%j.%a.%N.err

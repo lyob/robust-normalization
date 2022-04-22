@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -n 1 # one node
-#SBATCH -p cnn -c 1
+#SBATCH -p ccn -c 1
 
 #SBATCH -t 1:00:00
 #SBATCH --mem=8G

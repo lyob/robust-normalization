@@ -7,7 +7,7 @@ Reference:
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from robustness.imagenet_models import custom_modules
+from robustness.tools import custom_modules1
 
 class LRN(nn.Module):
     def __init__(self, channel_size=1, spatial_size=1, alpha=1.0, beta=0.75, across_channel_spatial=True):
@@ -80,7 +80,7 @@ class BasicBlock(nn.Module):
                            'lrnc': self.lrnc1, 'lrns': self.lrns1, 'lrnb': self.lrnb1}
         self.norm_dict2 = {'nn': nn.Identity(), 'bn': self.bn2, 'ln': self.ln2, 'in': self.in2, 'gn': self.gn2,
                            'lrnc': self.lrnc2, 'lrns': self.lrns2, 'lrnb': self.lrnb2}
-        self.fake_relu = custom_modules.FakeReLUM()
+        self.fake_relu = custom_modules1.FakeReLUM()
         
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != self.expansion*planes:
@@ -182,7 +182,7 @@ class Bottleneck(nn.Module):
             self.shortcut = nn.Sequential(nn.Conv2d(in_planes, self.expansion*planes, kernel_size=1,
                               stride=stride, bias=False), self.norm_shortcut[self.normalize])
 
-        self.fake_relu = custom_modules.FakeReLUM()
+        self.fake_relu = custom_modules1.FakeReLUM()
 
     def forward(self, x, fake_relu=False):
         out = F.relu(self.norm_dict1[self.normalize](self.conv1(x)))
@@ -246,7 +246,7 @@ class ResNet(nn.Module):
             layers.append(block(self.in_planes, planes, self.input_size, stride,
                                 normalize=self.normalize))
             self.in_planes = planes * block.expansion
-        return custom_modules.SequentialWithArgs(*layers)
+        return custom_modules1.SequentialWithArgs(*layers)
 
     def forward(self, x, with_latent=False, no_relu=False, fake_relu=False):
         assert (not no_relu),  \

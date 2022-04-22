@@ -10,7 +10,8 @@ WEIGHT_DECAY=$7
 
 cd /mnt/home/blyo1/ceph/syLab/robust-normalization/code/;
 source /mnt/home/blyo1/miniconda3/etc/profile.d/conda.sh
-conda activate pyenv36;
+module load gcc/11.2.0
+conda activate pyenv38;
 
 python3 resnet_normalize.py \
 	--cluster "flatiron" \

@@ -61,8 +61,7 @@ def load_model(dataset, weight=None, normalize='nn'):
         sd = {k[len('module.'):]:v for k,v in sd.items()}
         model.load_state_dict(sd)
         model.eval()
-        print(model.model)
-        # model = model.to(device)
+        # print(model.model)
         print("=> loaded checkpoint '{}' (epoch {})".format(weight, checkpoint['epoch']))
 
         model = model.eval()
@@ -72,6 +71,8 @@ def load_model(dataset, weight=None, normalize='nn'):
     else:  # create new model
         model = model
         # model, _ = model_utils.make_and_restore_model(arch=model, dataset=dataset)
+    # model = model.cuda()
+    model = model.to(device)
     return model
 
 
@@ -272,9 +273,9 @@ if __name__ == '__main__':
     learning_rate = 0.01
     eps = args.eps.split('_')
 
-    save_folder = os.path.join(args.save_folder, args.model_name)
-    if not os.path.exists(save_folder):
-        os.makedirs(save_folder, exist_ok=True)
+    save_folder = os.path.join('..', args.save_folder, 'resnet')
+    # if not os.path.exists(save_folder):
+        # os.makedirs(save_folder, exist_ok=True)
     seed_everything(args.seed)
 
     global device

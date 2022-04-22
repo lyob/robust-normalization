@@ -20,7 +20,7 @@ from art.utils import load_cifar10
 from robustness import model_utils, train, defaults, attacker
 from robustness.datasets import CIFAR
 
-from cifar_layer_norm import ResNet, BasicBlock
+from alexnet_layer_norm import AlexNet
 
 # We use cox (http://github.com/MadryLab/cox) to log, store and analyze
 # results. Read more at https//cox.readthedocs.io.
@@ -48,9 +48,8 @@ def hook_fn(module,inp,outp):
     
 
 def load_model(dataset, weight=None, normalize='nn'):
-    #Use ResNet18
-    arch = ResNet(BasicBlock, [2,2,2,2], normalize=normalize)
-    
+    # Use AlexNet
+    arch = AlexNet(normalize=normalize)
     model = attacker.AttackerModel(arch, dataset)
 
     if weight and os.path.isfile(weight):  # load previously saved model

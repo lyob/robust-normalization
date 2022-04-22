@@ -11,27 +11,60 @@ import pickle
 import pandas as pd
 import seaborn as sns
 
-#%%
-# parameters
-dataset = 'mnist'  # mnist or cifar
-model_name = "convnet_widthscale"  # convnetX or resnetX
-# frontend = 'vone_filterbank' # vone_filterbank or learned_conv or frozen_conv
-frontend = 'learned_conv'
-norm_position = 'both'
-seed = [1,2,3,4,5,6,7,8,9,10]
-seed = [1,2,3,4,5]
+#%% select experiment
+params_convnet_disentangling_tr_and_eval_seeds = {
+    'dataset': 'mnist',
+    'model_name': 'convnet_widthscale',
+    'frontend': 'learned_conv',
+    'norm_position': 'both',
+    'seed': [1,2,3,4,5,6,7,8,9,10],
+    'tr_seed': [3],
+    'lr': 0.01,
+    'wd': 0.0005,  # 0.0, 0.0005, 0.005, 0.05
+    'ws': False,
+    'normalize': ["bn", 'gn', "in", "ln", "lrnc", "lrns", "lrnb", 'nn']
+}
 
-tr_seed = [3]  # array or False
-tr_seed = False
-lr = 0.01
-# wd = 0.0005
-# wd = [0.0, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1]
-wd = 0.0005
+params_convnet_widthscale = {
+    'dataset': 'mnist',
+    'model_name': 'convnet_widthscale',
+    'frontend': 'learned_conv',
+    'norm_position': 'both',
+    'seed': [1,2,3,4,5],
+    'tr_seed': False,
+    'lr': 0.01,
+    'wd': 0.0005,  # 0.0, 0.0005, 0.005, 0.05
+    'ws': [2.5],  # 1.5, 2.0, 2.5, 3.0
+    'normalize': ["bn", "in", "ln", "lrnc", "lrns", "lrnb", 'nn']  # gn for 2.0 and 3.0
+}
 
-ws = [1.5, 2.0, 2.5, 3.0]
-ws = [2.0]
-normalize = ['nn', 'lrnb']
-normalize = ["bn", 'gn', "in", "ln", "lrnc", "lrns", "lrnb", 'nn']
+params_resnet = {
+    'dataset': 'cifar',
+    'model_name': 'resnet1',  # resnet1 or resnet2
+    'frontend': 'learned_conv',
+    'norm_position': 'both',
+    'seed': [1,2,3,4,5,6,7,8,9,10],
+    'tr_seed': False,
+    'lr': 0.01,
+    'wd': 0.0,  # 0.0, 0.0005, 0.005, 0.05
+    'ws': False,
+    # 'normalize': ['bn', 'gn', 'in', 'ln', 'lrnc', 'lrns', 'lrnb', 'nn']
+    'normalize': ['nn']
+}
+
+parameters = params_resnet
+
+#%% parameters
+dataset = parameters['dataset']
+model_name = parameters['model_name']
+frontend = parameters['frontend']
+norm_position = parameters['norm_position']
+seed = parameters['seed']
+tr_seed = parameters['tr_seed']
+lr = parameters['lr']
+wd = parameters['wd']
+ws = parameters['ws']
+normalize = parameters['normalize']
 
 if dataset=="mnist":
     eps = [0.01, 0.03, 0.05, 0.07, 0.1, 0.15, 0.2]
@@ -188,16 +221,16 @@ if type(seed)==list:
         model = model_name[:7]
         dataset_name = 'mnist'
         xlabel_info = ''
-        if type(ws)==list:
-            title_info = f'width scale = {ws[0]}'
+            
     elif model_name[:6] == 'resnet':
         plt.xticks(eps_plot, labels=['0.0', '1.0', '2.0', '4.0', '6.0', '8.0'])
         model = model_name[:6]
         dataset_name = 'cifar-10'
         xlabel_info = '(x/255)'
         ax.set_ylim(top=1.0)
+    title_info = f', width scale = {ws[0]}' if type(ws)==list else ''
     ax.set(xlabel=f"attack strength {xlabel_info}", ylabel="accuracy")
-    ax.set(title=f'{model} trained on {dataset_name}, seed={seed}\n weight decay = {wd}, {title_info}')
+    ax.set(title=f'{model} trained on {dataset_name}, seed={seed}\n weight decay = {wd}{title_info}')
 
             
 else:

@@ -38,163 +38,58 @@ class LRN(nn.Module):
             div = div.mul(self.alpha).add(1.0).pow(self.beta)
         x = x.div(div)
         return x
-    
-class BasicBlock(nn.Module):
-    expansion = 1
-
-    def __init__(self, in_planes, planes, size, stride=1, normalize='nn'):
-        super(BasicBlock, self).__init__()
-        self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=3, stride=stride,
-                               padding=1, bias=False)
-        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=1,
-                               padding=1, bias=False)
-        
-        self.bn1 = nn.BatchNorm2d(planes)
-        self.bn2 = nn.BatchNorm2d(planes)
-        if stride == 1:
-            self.ln1 = nn.LayerNorm((planes, size*1, size*1))
-        else:
-            self.ln1 = nn.LayerNorm((planes, size*1, size*1))
-
-        self.ln2 = nn.LayerNorm((planes, size, size))
-        self.in1 = nn.InstanceNorm2d(planes)
-        self.in2 = nn.InstanceNorm2d(planes)
-        self.gn1 = nn.GroupNorm(16, planes)
-        self.gn2 = nn.GroupNorm(16, planes)
-        self.lrnc1 = nn.LocalResponseNorm(5, alpha=0.001)
-        self.lrnc2 = nn.LocalResponseNorm(5, alpha=0.001)
-
-        if size < 20:
-            self.lrnb1 = LRN(spatial_size=3, channel_size=5, alpha=0.001, across_channel_spatial=True)
-            self.lrnb2 = LRN(spatial_size=3, channel_size=5, alpha=0.001, across_channel_spatial=True)
-            self.lrns1 = LRN(spatial_size=3, alpha=0.001, across_channel_spatial=False)
-            self.lrns2 = LRN(spatial_size=3, alpha=0.001, across_channel_spatial=False)
-        else:
-            self.lrnb1 = LRN(spatial_size=5, channel_size=5, alpha=0.001, across_channel_spatial=True)
-            self.lrnb2 = LRN(spatial_size=5, channel_size=5, alpha=0.001, across_channel_spatial=True)
-            self.lrns1 = LRN(spatial_size=3, alpha=0.001, across_channel_spatial=False)
-            self.lrns2 = LRN(spatial_size=3, alpha=0.001, across_channel_spatial=False)
-        
-        self.normalize = normalize
-        self.norm_dict1 = {'nn': nn.Identity(), 'bn': self.bn1, 'ln': self.ln1, 'in': self.in1, 'gn': self.gn1,
-                           'lrnc': self.lrnc1, 'lrns': self.lrns1, 'lrnb': self.lrnb1}
-        self.norm_dict2 = {'nn': nn.Identity(), 'bn': self.bn2, 'ln': self.ln2, 'in': self.in2, 'gn': self.gn2,
-                           'lrnc': self.lrnc2, 'lrns': self.lrns2, 'lrnb': self.lrnb2}
-        self.fake_relu = custom_modules1.FakeReLUM()
-        
-        self.shortcut = nn.Sequential()
-        if stride != 1 or in_planes != self.expansion*planes:
-            if size < 15:
-                self.lrnb_shortcut = LRN(spatial_size=3, channel_size=5, alpha=0.001, across_channel_spatial=True)
-                self.lrns_shortcut = LRN(spatial_size=3, alpha=0.001, across_channel_spatial=False)
-            else:
-                self.lrnb_shortcut = LRN(spatial_size=3, channel_size=5, alpha=0.001, across_channel_spatial=True)
-                self.lrns_shortcut = LRN(spatial_size=3, alpha=0.001, across_channel_spatial=False)
-                
-            self.norm_shortcut = {'nn': nn.Identity(), 'bn': nn.BatchNorm2d(planes*self.expansion), 
-            'ln': nn.LayerNorm((planes*self.expansion, size, size)), 'gn': nn.GroupNorm(16, planes*self.expansion),
-            'in': nn.InstanceNorm2d(planes*self.expansion), 'lrnc': nn.LocalResponseNorm(5,alpha=0.001),
-            'lrns': self.lrns_shortcut, 'lrnb': self.lrnb_shortcut}
-            self.shortcut = nn.Sequential(nn.Conv2d(in_planes, self.expansion*planes, kernel_size=1,
-                              stride=stride, bias=False), self.norm_shortcut[self.normalize])
-        self.stride = stride
-        self.size = size
-
-    def forward(self, x, fake_relu=False):
-        out = F.relu(self.norm_dict1[self.normalize](self.conv1(x)))
-        out = self.norm_dict2[self.normalize](self.conv2(out))
-        out += self.shortcut(x)
-        if fake_relu:
-            return self.fake_relu(out)
-        return F.relu(out)
 
 
-class Bottleneck(nn.Module):
-    expansion = 4
+class AlexNet(nn.Module):
+    def __init__(self, num_classes: int = 1000, dropout: float = 0.5) -> None:
+        super().__init__()
 
-    def __init__(self, in_planes, planes, size, stride=1, normalize='nn'):
-        super(Bottleneck, self).__init__()
-        self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=1, bias=False)
-        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride,
-                               padding=1, bias=False)
-        self.conv3 = nn.Conv2d(planes, self.expansion*planes, kernel_size=1, bias=False)
+        self.features = nn.Sequential(
+            # first lyaer
+            nn.Conv2d(3, 64, kernel_size=11, stride=4, padding=2),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2),
 
-        self.bn1 = nn.BatchNorm2d(planes)
-        self.bn2 = nn.BatchNorm2d(planes)
-        self.bn3 = nn.BatchNorm2d(self.expansion*planes)
+            # second layer
+            nn.Conv2d(64, 192, kernel_size=5, padding=2),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2),
 
-        if stride == 1:
-            self.ln1 = nn.LayerNorm((planes, size, size))
-        else:
-            self.ln1 = nn.LayerNorm((planes, size*2, size*2))
-        self.ln2 = nn.LayerNorm((planes, size, size))
-        self.ln3 = nn.LayerNorm((planes, size, size))
-        
-        self.in1 = nn.InstanceNorm2d(planes)
-        self.in2 = nn.InstanceNorm2d(planes)
-        self.in3 = nn.InstanceNorm2d(planes)
-        self.gn1 = nn.GroupNorm(16, planes)
-        self.gn2 = nn.GroupNorm(16, planes)
-        self.gn2 = nn.GroupNorm(16, planes)
-        
-        self.lrnc1 = nn.LocalResponseNorm(5, alpha=0.001)
-        self.lrnc2 = nn.LocalResponseNorm(5, alpha=0.001)
-        self.lrnc3 = nn.LocalResponseNorm(5, alpha=0.001)
-        
-        if size < 15:
-            self.lrnb1 = LRN(spatial_size=3, channel_size=5, alpha=0.001, across_channel_spatial=True)
-            self.lrnb2 = LRN(spatial_size=3, channel_size=5, alpha=0.001, across_channel_spatial=True)
-            self.lrnb3 = LRN(spatial_size=3, channel_size=5, alpha=0.001, across_channel_spatial=True)
-            self.lrns1 = LRN(spatial_size=3, alpha=0.001, across_channel_spatial=False)
-            self.lrns2 = LRN(spatial_size=3, alpha=0.001, across_channel_spatial=False)
-            self.lrns3 = LRN(spatial_size=3, alpha=0.001, across_channel_spatial=False)
+            # third layer
+            nn.Conv2d(192, 384, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
 
-        else:
-            self.lrnb1 = LRN(spatial_size=5, channel_size=5, alpha=0.001, across_channel_spatial=True)
-            self.lrnb2 = LRN(spatial_size=5, channel_size=5, alpha=0.001, across_channel_spatial=True)
-            self.lrnb3 = LRN(spatial_size=5, channel_size=5, alpha=0.001, across_channel_spatial=True)
+            # fourth layer
+            nn.Conv2d(384, 256, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
 
-            self.lrns1 = LRN(spatial_size=3, alpha=0.001, across_channel_spatial=False)
-            self.lrns2 = LRN(spatial_size=3, alpha=0.001, across_channel_spatial=False)
-            self.lrns3 = LRN(spatial_size=3, alpha=0.001, across_channel_spatial=False)
+            # fifth layer
+            nn.Conv2d(256, 256, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+        )
+        self.avgpool = nn.AdaptiveAvgPool2d((6, 6))
+        self.classifier = nn.Sequential(
+            nn.Dropout(p=dropout),
+            nn.Linear(256 * 6 * 6, 4096),
+            nn.ReLU(inplace=True),
+            nn.Dropout(p=dropout),
+            nn.Linear(4096, 1024),
+            nn.ReLU(inplace=True),
+            nn.Linear(1024, num_classes),
+        )
 
-        self.size = size
-        self.stride = stride
-        self.normalize = normalize
-        self.norm_dict1 = {'nn': nn.Identity(), 'bn': self.bn1, 'ln': self.ln1}
-        self.norm_dict2 = {'nn': nn.Identity(), 'bn': self.bn2, 'ln': self.ln2}
-        self.norm_dict3 = {'nn': nn.Identity(), 'bn': self.bn3, 'ln': self.ln3}
-        
-
-        self.shortcut = nn.Sequential()
-        if stride != 1 or in_planes != self.expansion*planes:
-            if size < 15:
-                self.lrnb_shortcut = LRN(spatial_size=3, channel_size=5, alpha=0.001, across_channel_spatial=True)
-                self.lrns_shortcut = LRN(spatial_size=3, alpha=0.001, across_channel_spatial=False)
-            else:
-                self.lrnb_shortcut = LRN(spatial_size=3, channel_size=5, alpha=0.001, across_channel_spatial=True)
-                self.lrns_shortcut = LRN(spatial_size=3, alpha=0.001, across_channel_spatial=False)
-                
-            self.norm_shortcut = {'nn': nn.Identity(), 'bn': nn.BatchNorm2d(planes*self.expansion), 
-            'ln': nn.LayerNorm((planes*self.expansion, size, size)), 'gn': nn.GroupNorm(16, planes*self.expansion),
-            'in': nn.InstanceNorm2d(planes*self.expansion), 'lrnc': nn.LocalResponseNorm(5,alpha=0.001),
-            'lrns': self.lrns_shortcut, 'lrnb': self.lrnb_shortcut}
-            self.shortcut = nn.Sequential(nn.Conv2d(in_planes, self.expansion*planes, kernel_size=1,
-                              stride=stride, bias=False), self.norm_shortcut[self.normalize])
-
-        self.fake_relu = custom_modules1.FakeReLUM()
-
-    def forward(self, x, fake_relu=False):
-        out = F.relu(self.norm_dict1[self.normalize](self.conv1(x)))
-        out = F.relu(self.norm_dict2[self.normalize](self.conv2(out)))
-        out = self.norm_dict3[self.normalize](self.conv3(out))
-        out += self.shortcut(x)
-        if fake_relu:
-            return self.fake_relu(out)
-        return F.relu(out)
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.features(x)
+        x = self.avgpool(x)
+        x = torch.flatten(x, 1)
+        x = self.classifier(x)
+        return x
 
 
-class ResNet(nn.Module):
+
+
+
     # feat_scale lets us deal with CelebA, other non-32x32 datasets
     def __init__(self, block, num_blocks, input_size=32, num_classes=10, feat_scale=1, wm=1, normalize='nn'):
         super(ResNet, self).__init__()

@@ -148,13 +148,13 @@ end of refactor
 
 
 class Net_both(nn.Module):
-    def __init__(self, conv_1, in_channels, width_scale=1, normalize=None):
+    def __init__(self, conv_1, in_channels, width_scale=1, fc_neurons=500, normalize=None):
         super(Net_both, self).__init__()
         self.width_scale = width_scale
         self.out_channels = int(20*self.width_scale)
         self.conv_1 = conv_1
         self.conv_2 = nn.Conv2d(in_channels=in_channels, out_channels=self.out_channels, kernel_size=5, stride=1)
-        self.fc_1 = nn.Linear(in_features=int(500*self.width_scale), out_features=10)
+        self.fc_1 = nn.Linear(in_features=int(fc_neurons*self.width_scale), out_features=10)
         self.relu = nn.ReLU()
 
         self.bn1 = nn.BatchNorm2d(in_channels)

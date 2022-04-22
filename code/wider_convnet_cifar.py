@@ -70,7 +70,7 @@ def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method
         conv_1 = nn.Conv2d(in_channels=3, out_channels=in_channels, kernel_size=ksize, stride=2, padding=ksize//2)
         
         if norm_position == 'both':
-            model = Net_both(conv_1, in_channels, width_scale, normalize=norm_method)
+            model = Net_both(conv_1, in_channels, width_scale, fc_neurons=720, normalize=norm_method)
         if norm_position == '1':
             model = Net_1(conv_1, in_channels, normalize=norm_method)
         if norm_position == '2':

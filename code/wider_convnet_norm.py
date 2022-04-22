@@ -108,7 +108,6 @@ def main(save_folder, frontend, model_name, seed, lr, wd, mode, eps, norm_method
         print('we are now testing the model!')
         predictions = classifier.predict(x_test[:n_images])
         accuracy = np.sum(np.argmax(predictions, axis=1) == np.argmax(y_test[:n_images], axis=1)) / len(y_test[:n_images])
-        # print(timer() - start)
         print("Accuracy on benign test examples: {}%".format(accuracy * 100))
 
         model_folder_name = f'{frontend}_frontend-norm_{norm_position}-ws_{width_scale}'

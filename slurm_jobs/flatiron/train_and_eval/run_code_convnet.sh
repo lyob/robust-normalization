@@ -16,7 +16,7 @@ cd /mnt/home/blyo1/ceph/syLab/robust-normalization/code/;
 source /mnt/home/blyo1/miniconda3/etc/profile.d/conda.sh
 conda activate pyenv36;
 
-python3 wider_convnet_norm.py \
+python3 wider_convnet_cifar.py \
 	--save_folder ${SAVE_FOLDER} \
 	--frontend ${FRONTEND} \
 	--norm_position ${NORM_POSITION} \

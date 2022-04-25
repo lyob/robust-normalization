@@ -48,6 +48,7 @@ class AlexNet(nn.Module):
         ) -> None:
         super().__init__()
 
+        self.num_classes = num_classes
         self.num_channels = [64, 192, 384, 256, 256]
 
         self.bn1 = nn.BatchNorm2d(self.num_channels[0])
@@ -96,47 +97,68 @@ class AlexNet(nn.Module):
                            'lrnc': self.lrn_channel, 'lrnb': self.lrn_both}
         self.normalize = normalize
 
+        self.relu = nn.ReLU(inplace=False)
+        self.dropout = nn.Dropout(p=0.5, inplace=False)
+        self.fake_relu = custom_modules1.FakeReLUM()
+        self.maxpool2d = nn.MaxPool2d(kernel_size=3, stride=2)
+
         self.features = nn.Sequential(
             # first layer
             nn.Conv2d(3, self.num_channels[0], kernel_size=11, stride=4, padding=2),
             self.norm_dict1[self.normalize],
-            nn.ReLU(inplace=False),
-            nn.MaxPool2d(kernel_size=3, stride=2),
+            self.relu,
+            self.maxpool2d,
 
             # second layer
             nn.Conv2d(self.num_channels[0], self.num_channels[1], kernel_size=5, padding=2),
             self.norm_dict2[self.normalize],
-            nn.ReLU(inplace=False),
-            nn.MaxPool2d(kernel_size=3, stride=2),
+            self.relu,
+            self.maxpool2d,
 
             # third layer
             nn.Conv2d(self.num_channels[1], self.num_channels[2], kernel_size=3, padding=1),
             self.norm_dict3[self.normalize],
-            nn.ReLU(inplace=False),
+            self.relu,
 
             # fourth layer
             nn.Conv2d(self.num_channels[2], self.num_channels[3], kernel_size=3, padding=1),
             self.norm_dict4[self.normalize],
-            nn.ReLU(inplace=False),
+            self.relu,
 
             # fifth layer
             nn.Conv2d(self.num_channels[3], self.num_channels[4], kernel_size=3, padding=1),
             self.norm_dict5[self.normalize],
-            nn.ReLU(inplace=False),
-            nn.MaxPool2d(kernel_size=3, stride=2),
+            self.relu,
+            self.maxpool2d,
         )
         self.avgpool = nn.AdaptiveAvgPool2d((6, 6))
-        self.classifier = nn.Sequential(
-            nn.Linear(self.num_channels[4] * 6 * 6, 4096),
-            nn.ReLU(inplace=False),
-            nn.Linear(4096, 1024),
-            nn.ReLU(inplace=False),
-            nn.Linear(1024, num_classes),
-        )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        self.linear1 = nn.Linear(self.num_channels[4] * 6 * 6, 4096)
+        self.linear2 = nn.Linear(4096, 1024)
+        self.linear3 = nn.Linear(1024, self.num_classes)
+
+    def forward(
+        self, 
+        x: torch.Tensor, 
+        with_latent: bool=False, 
+        no_relu: bool=False, 
+        fake_relu: bool=False 
+        ) -> torch.Tensor:
+
         x = self.features(x)
-        x = self.avgpool(x)
+        # x = self.avgpool(x)
+        x = F.adaptive_avg_pool2d(x, (6,6))
         x = torch.flatten(x, 1)
-        x = self.classifier(x)
-        return x
+        
+        # linear classifier
+        x = self.dropout(x)
+        x = self.linear1(x)
+        x = self.relu(x)
+        x = self.dropout(x)
+        pre_relu = self.linear2(x)
+        out = self.relu(pre_relu) if not fake_relu else self.fake_relu(pre_relu)
+        final = self.linear3(out)
+        
+        if with_latent:
+            return (final, pre_relu) if no_relu else (final, out)
+        return final

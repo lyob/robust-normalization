@@ -1,7 +1,9 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
+import torchvision
+import torchvision.transforms as transforms
+
 import numpy as np
 import pickle
 import dill
@@ -13,7 +15,7 @@ import argparse
 # Read more at https://github.com/Trusted-AI/adversarial-robustness-toolbox
 from art.attacks.evasion import ProjectedGradientDescent, FastGradientMethod
 from art.estimators.classification import PyTorchClassifier
-from art.utils import load_cifar10
+# from art.utils import load_cifar10
 
 # we use robustness (https://github.com/MadryLab/robustness) to train, evaluate, and explore neural networks. 
 # Read more at https://adversarial-robustness-toolbox.readthedocs.io/en/latest/.
@@ -79,11 +81,20 @@ def main(save_folder, model_name, seed, cluster, mode='train', normalize='nn', w
     print(f'Save folder: {save_folder}, model_name: {model_name}, seed: {seed}, mode: {mode}, \
         attack_mode: {attack_mode}, eps: {eps}, normalize: {normalize}, wd: {weight_decay}')
     
+    # transform dataset
+    transform = transforms.Compose([
+        transforms.Resize(256),
+        transforms.CenterCrop(224),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+
     if cluster=='nyu':
-        ds = CIFAR(data_path='/scratch/bl3021/research/sy-lab/robust-normalization/datasets/')  # nyu cluster
+        datapath='/scratch/bl3021/research/sy-lab/robust-normalization/datasets/'  # nyu cluster
     if cluster=='flatiron':    
-        ds = CIFAR(data_path='/mnt/ceph/users/blyo1/syLab/robust-normalization/datasets/')  # flatiron cluster
-        # df = CIFAR(data_path='../../datasets/')
+        datapath='/mnt/ceph/users/blyo1/syLab/robust-normalization/datasets/'  # flatiron cluster
+
+    ds = CIFAR(datapath, transform_train=transform, transform_test=transform)
     train_loader, val_loader = ds.make_loaders(batch_size=128, workers=8)
     save_name_base = f"{model_name}-normalize_{normalize}-wd_{weight_decay}-seed_{seed}"
     
@@ -91,58 +102,56 @@ def main(save_folder, model_name, seed, cluster, mode='train', normalize='nn', w
         """
         we train the model using the Robustness library
         """
+        # save path
         save_path = os.path.join(save_folder, 'trained_models', model_name)
         if not os.path.exists(save_path):
             os.makedirs(save_path, exist_ok=True)
+
         model = load_model(ds, normalize=normalize)
         save_name = save_name_base
         out_store = cox.store.Store(save_path, exp_id = save_name)  # create a cox Store for saving results of the training (read https://cox.readthedocs.io/en/latest/cox.store.html)
+        
         # Hard-coded base parameters
         train_kwargs = {
             'out_dir': "train_out",
             'adv_train': 0,
-            'epochs': 120,
-            'step_lr': 40,
-            'weight_decay':weight_decay
+            'epochs': 120,  # 120
+            'step_lr': 40,  # 40
+            'weight_decay': weight_decay,
+            'lr': 0.01
         }
-        
         train_args = Parameters(train_kwargs)
         
         # Fill whatever parameters are missing from the defaults
-        train_args = defaults.check_and_fill_args(train_args,
-                                defaults.TRAINING_ARGS, CIFAR)
+        train_args = defaults.check_and_fill_args(train_args, defaults.TRAINING_ARGS, CIFAR)
         # train model
+        print('we are now starting the training...')
         model = train.train_model(train_args, model, (train_loader, val_loader), store=out_store)  
-
+        print('training complete, validation starting...')
 
         """
-        now we evaluate the same model using ART
+        now we validate the same model using ART
         """
         #load cifar dataset
-        (x_train, y_train), (x_test, y_test), min_pixel_value, max_pixel_value = load_cifar10()
-        x_train = x_train.transpose(0,3,1,2).astype(np.float32)
-        x_test = x_test.transpose(0,3,1,2).astype(np.float32)
+        # (x_train, y_train), (x_test, y_test), min_pixel_value, max_pixel_value = load_cifar10()
+        # x_test = x_test.transpose(0,3,1,2).astype(np.float32)
+        # print('using load_cifar10(), shape of x_test after transposing:', x_test.shape)
 
-        mean = np.array([0.4914, 0.4822, 0.4465]).reshape((3, 1, 1))
-        std = np.array([0.2023, 0.1994, 0.2010]).reshape((3, 1, 1))
-        # we can also get these values using our CIFAR dataset from `robustness.datasets`:
-        # mean = ds.mean.reshape((3,1,1))
-        # std = ds.std.reshape((3,1,1))
+        test_data = torchvision.datasets.CIFAR10(root=datapath, train=False, download=True, transform=transform)
+        test_loader = torch.utils.data.DataLoader(test_data, batch_size=10000, shuffle=False, num_workers=8)
+        for data in test_loader:
+            (x_test, y_test) = data
+        # print('x_test size', x_test.size())
 
+        # robustness wraps the model in a few layers -- this will get the main model for evaluation with ART.
+        model = model.module.model if hasattr(model, 'module') else model.model
+        
         criterion = nn.CrossEntropyLoss()
-        optimizer = optim.SGD(model.parameters(), lr=0.01)
-
-        # robustness wraps the model in a few layers -- this will get the main VOneResNet18 for evaluation with ART.
-        if hasattr(model, 'module'):
-            model = model.module.model
-        else:
-            model = model.model
+        optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
 
         # https://adversarial-robustness-toolbox.readthedocs.io/en/latest/modules/estimators/classification.html#pytorch-classifier
         classifier = PyTorchClassifier(
             model=model,
-            clip_values=(min_pixel_value, max_pixel_value),
-            preprocessing=(mean, std),
             loss=criterion,
             optimizer=optimizer,
             input_shape=(3, 32, 32),
@@ -150,70 +159,62 @@ def main(save_folder, model_name, seed, cluster, mode='train', normalize='nn', w
         )
 
         # eval with clean image
-        predictions = classifier.predict(x_test)
-        accuracy = np.sum(np.argmax(predictions, axis=1) == np.argmax(y_test, axis=1)) / len(y_test)
-        print("Accuracy on benign test examples: {}%".format(accuracy * 100))
+        predictions = classifier.predict(x_test, training_mode=False)
+        # print(np.argmax(predictions, axis=1))
+        y_test = y_test.numpy()
+        # print(y_test)
+        accuracy = np.sum(np.argmax(predictions, axis=1) == y_test) / len(y_test)
+        print(f"Accuracy on benign test examples: {accuracy * 100}%")
 
     if mode == 'val' or mode == 'extract':
         eps = [float(i) for i in eps]
-        eps_cifar = [i/255.0 for i in eps] 
+        eps_cifar = [i/255.0 for i in eps]
+
+        # load previously trained model weights 
         save_path = os.path.join(save_folder, 'trained_models')
         save_name = os.path.join(save_path, model_name, save_name_base, 'checkpoint.pt.best')
         model = load_model(ds, normalize=normalize, weight=save_name)
 
-        
-        #load cifar dataset using ART
-        (x_train, y_train), (x_test, y_test), min_pixel_value, max_pixel_value = load_cifar10()
-        x_train = x_train.transpose(0,3,1,2).astype(np.float32)
-        x_test = x_test.transpose(0,3,1,2).astype(np.float32)
+        test_data = torchvision.datasets.CIFAR10(root=datapath, train=False, download=True, transform=transform)
+        test_loader = torch.utils.data.DataLoader(test_data, batch_size=10000, shuffle=False, num_workers=8)
+        for data in test_loader:
+            (x_test, y_test) = data
 
+        # robustness wraps the model in a few layers -- this will get the main model for evaluation with ART.
+        model = model.module.model if hasattr(model, 'module') else model.model
+        
         criterion = nn.CrossEntropyLoss()
-        optimizer = optim.SGD(model.parameters(), lr=0.01)
-        
-        # robustness wraps the model in a few layers -- this will get the main VOneResNet18 for evaluation with ART.
-        if hasattr(model, 'module'):
-            model = model.module.model
-        else:
-            model = model.model
-        
-        mean = np.array([0.4914, 0.4822, 0.4465]).reshape((3, 1, 1))
-        std = np.array([0.2023, 0.1994, 0.2010]).reshape((3, 1, 1))
+        optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+
+        # https://adversarial-robustness-toolbox.readthedocs.io/en/latest/modules/estimators/classification.html#pytorch-classifier
         classifier = PyTorchClassifier(
             model=model,
-            clip_values=(min_pixel_value, max_pixel_value),
-            preprocessing=(mean, std),
             loss=criterion,
             optimizer=optimizer,
             input_shape=(3, 32, 32),
             nb_classes=10,
         )
-        
-        #eval with clean image
-        predictions = classifier.predict(x_test)
-        accuracy = np.sum(np.argmax(predictions, axis=1) == np.argmax(y_test, axis=1)) / len(y_test)
-        print("Accuracy on benign test examples: {}%".format(accuracy * 100))
+
+        # to speed things up a bit let's just do evaluation on 1000 images. Final analysis ideally on full test set.
+        n_images = 10000
+
+        # eval with clean image
+        predictions = classifier.predict(x_test[:n_images], training_mode=False)
+        y_test = y_test.numpy()
+        accuracy = np.sum(np.argmax(predictions, axis=1) == y_test[:n_images]) / len(y_test[:n_images])
+        print(f"Accuracy on benign test examples: {accuracy * 100}%")
 
         """
         end of extract mode
         """        
 
-        if attack_mode == 'inf':
-            norm = np.inf
-        else:
-            norm = int(attack_mode)
+        norm = np.inf if attack_mode == 'inf' else int(attack_mode)
+        saved_perf = {}
+        saved_perf['clean'] = accuracy
         
         if mode == 'val':
-            # to speed things up a bit let's just do evaluation on 1000 images. Final analysis ideally on full test set.
-            n_images = 10000
-            predictions = classifier.predict(x_test[:n_images])
-            accuracy = np.sum(np.argmax(predictions, axis=1) == np.argmax(y_test[:n_images], axis=1)) / len(y_test[:n_images])
-            print("Accuracy on benign test examples: {}%".format(accuracy * 100))
-
-            saved_perf = {}
-            saved_perf['clean'] = accuracy
-            
+            # in 'val' mode we attack the trained model (that has not been adv trained)
             record = np.zeros((len(eps_cifar)))
-    
             # scan over k to find a reasonable number of averages
             for ep_idx in range(len(eps)):
                 ep = eps_cifar[ep_idx]
@@ -269,12 +270,10 @@ if __name__ == '__main__':
     # parser.add_argument('--learning_rate',help='The learning rate for the optimizer')
 
     args = parser.parse_args()
-    learning_rate = 0.01
+    learning_rate = 0.001
     eps = args.eps.split('_')
 
-    save_folder = os.path.join('..', args.save_folder, 'resnet')
-    # if not os.path.exists(save_folder):
-        # os.makedirs(save_folder, exist_ok=True)
+    save_folder = os.path.join('..', args.save_folder, 'alexnet')
     seed_everything(args.seed)
 
     global device

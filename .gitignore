@@ -12,6 +12,7 @@ slurm_jobs/**/outputs/
 slurm_jobs/**/errors/
 slurm_jobs/**/err/
 slurm_jobs/**/out/
+slurm_jobs/**/logs/
 *.err
 *.out
 

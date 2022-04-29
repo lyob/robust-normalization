@@ -135,17 +135,15 @@ print('post_3d size:     ', tuple(post_one_3d.size()))
 print('post_spatial size:', tuple(post_spatial.size()))
 print('post 2d size:     ', tuple(post_stacked_2d.size()))
 
-print('do the 2 methods produce the same result??:', torch.allclose(post_one_3d, post_stacked_2d))
+print('do the 2 methods produce the same result??:', torch.allclose(post_one_3d, post_stacked_2d, atol=1e-07))
 print('stacked 2d ops===\n', post_stacked_2d[0][1])
 print('one 3d op===\n', post_one_3d[0][1] )
-print(torch.allclose(post_one_3d[0], post_stacked_2d[0]))
+print(torch.allclose(post_one_3d[0], post_stacked_2d[0], atol=1e-07))
 #%% test the stacked 2D LRN on a 3x3 kernel on 2x2 HW
 
 input = torch.randn(1, 512, 2, 2)
 _, output = avg_stacked_2d(input, 3, 5)
 print(output.size())
-
-#%%
 
 
 #%%
@@ -154,7 +152,7 @@ op = nn.AvgPool2d(kernel_size=3, stride=1, padding=1)
 print('div size', op(input).size())
 
 
-#%% channel-wise averaging
+#%% channel-wise averaging (taken from the F.local_response_norm implementation)
 # the channel size is the second dimension
 input = torch.randn(1, 51, 2, 2)
 print('input===', input.size())

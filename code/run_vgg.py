@@ -57,12 +57,12 @@ def test_model(model, n_images=10000):
     return accuracy, classifier, x_test, y_test
 
 
-def train_model(cluster, base_save_folder, model_name, seed, norm_method, weight_decay, learning_rate, epochs):
+def train_model(cluster, base_save_folder, model_name, seed, norm_method, weight_decay, run_number, epochs, learning_rate=0.1):
     global device
     device = ch.device('cuda' if ch.cuda.is_available() else 'cpu')
     print(f'Using device: {device}')
     
-    model_save_name = f'nm:{norm_method}-seed:{seed}-wd:{weight_decay}'
+    model_save_name = f'nm:{norm_method}-seed:{seed}-wd:{weight_decay}-run:{run_number}'
     print(f'model name: {model_save_name}')
 
     # ensuring reproducibility
@@ -71,7 +71,7 @@ def train_model(cluster, base_save_folder, model_name, seed, norm_method, weight
     # save folder
     save_folder = os.path.join(base_save_folder, model_name, 'trained_models')
     if not os.path.exists(save_folder):
-        os.makedirs(save_folder)
+        os.makedirs(save_folder, exist_ok=True)
 
     # Create a cox store for logging
     out_store = store.Store(save_folder, exp_id = model_save_name)
@@ -90,6 +90,7 @@ def train_model(cluster, base_save_folder, model_name, seed, norm_method, weight
         'out_dir': "train_out",
         'adv_train': 0,
         'epochs': epochs,
+        'lr': learning_rate,
         'step_lr': 40,
         'weight_decay': weight_decay
     }
@@ -108,7 +109,7 @@ def train_model(cluster, base_save_folder, model_name, seed, norm_method, weight
     _, _, _, _ = test_model(model)
 
 
-def eval_model(cluster, base_save_folder, model_name, seed, norm_method, weight_decay, eps, attack_mode='inf'):
+def eval_model(cluster, base_save_folder, model_name, seed, norm_method, weight_decay, eps, run_number, attack_mode='inf'):
     global device
     device = ch.device('cuda' if ch.cuda.is_available() else 'cpu')
     print(f'Using device: {device}')
@@ -118,14 +119,15 @@ def eval_model(cluster, base_save_folder, model_name, seed, norm_method, weight_
 
     # load trained model weights
     load_folder = os.path.join(base_save_folder, model_name, 'trained_models')
-    model_load_name = model_save_name = f'nm:{norm_method}-seed:{seed}-wd:{weight_decay}'
+    model_load_name = model_save_name = f'nm:{norm_method}-seed:{seed}-wd:{weight_decay}-run:{run_number}'
     model_weights = os.path.join(load_folder, model_load_name, 'checkpoint.pt.best')
 
     # load dataset and prep model
     if cluster == 'flatiron':
         datapath='/mnt/ceph/users/blyo1/syLab/robust-normalization/datasets/'  # flatiron cluster
+    arch = VGG('VGG11', norm_method=norm_method)
     ds = CIFAR(datapath)
-    model, _ = model_utils.make_and_restore_model(arch='VGG11', dataset=ds, resume_path=model_weights)
+    model, _ = model_utils.make_and_restore_model(arch=arch, dataset=ds, resume_path=model_weights)
     model = model.eval()
     model = model.module.model if hasattr(model, 'module') else model.model
 
@@ -143,7 +145,7 @@ def eval_model(cluster, base_save_folder, model_name, seed, norm_method, weight_
 
     adv_dataset_folder = os.path.join(base_save_folder, model_name, 'adv_dataset', model_save_name)
     if not os.path.exists(adv_dataset_folder):
-        os.makedirs(adv_dataset_folder)
+        os.makedirs(adv_dataset_folder, exist_ok=True)
 
     for ep_idx, ep in enumerate(eps_cifar):
         print(f'Attack strength: {ep}')
@@ -175,7 +177,7 @@ def eval_model(cluster, base_save_folder, model_name, seed, norm_method, weight_
     # define save path
     save_folder = os.path.join(base_save_folder, model_name, 'eval_models', )
     if not os.path.exists(save_folder):
-        os.makedirs(save_folder)
+        os.makedirs(save_folder, exist_ok=True)
 
     # save prediction performance for all eps for both clean and perturbed datasets
     eps = [str(i) for i in eps]
@@ -194,13 +196,14 @@ def main():
     ########################
     cluster = 'flatiron'  # flatiron or nyu-greene
     base_save_folder = 'results'
-    model_name = 'vgg1'
-    mode = 'train'  # train, val
+    model_name = 'vgg2'
+    run_number = 1
+    mode = 'eval'  # train, val
     # weight_decay = [0.0005]
     weight_decay = [0.0005]
-    seed = [2]
-    #norm_method = ['nn', 'bn', 'in', 'gn', 'ln', 'lrnb', 'lrnc', 'lrns']
-    norm_method = ['lrnb']
+    seed = [1,2,3,4,5]
+    norm_method = ['nn', 'bn', 'in', 'gn', 'ln', 'lrnb', 'lrnc', 'lrns']
+    # norm_method = ['nn']
     learning_rate = 0.01
     epochs = 120
 
@@ -226,9 +229,10 @@ def main():
         nodes=1,
         slurm_partition="gpu", 
         slurm_gpus_per_task=1, 
-        slurm_constraint='v100', 
-        cpus_per_task=12, 
-        mem_gb=32, 
+        # slurm_constraint='a100', 
+        slurm_constraint='v100-32gb',
+        cpus_per_task=12,
+        mem_gb=8,  # 32gb for train mode, 8gb for eval mode
         timeout_min=60
     )
 
@@ -240,9 +244,9 @@ def main():
             for n in norm_method:
                 for wd in weight_decay:
                     if mode=='train':
-                        job = ex.submit(train_model, cluster, base_save_folder, model_name, s, n, wd, learning_rate, epochs)
+                        job = ex.submit(train_model, cluster, base_save_folder, model_name, s, n, wd, run_number, epochs, learning_rate)
                     elif mode=='eval':
-                        job = ex.submit(eval_model, cluster, base_save_folder, model_name, s, n, wd, eps, attack_mode)
+                        job = ex.submit(eval_model, cluster, base_save_folder, model_name, s, n, wd, eps, run_number, attack_mode)
                     else:
                         print('\n!!! The mode must either be `train` or `eval`. Aborting.\n')
                         return

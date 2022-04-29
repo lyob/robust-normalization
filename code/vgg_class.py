@@ -2,6 +2,7 @@
 
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.nn.init as init
 
 class LRN(nn.Module):
     def __init__(self, channel_size=1, spatial_size=1, alpha=1.0, beta=0.75, across_channel_spatial=True):
@@ -84,9 +85,21 @@ cfg = {'VGG11': [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M']
 
 class VGG(nn.Module):
     def __init__(self, vgg_name, norm_method='nn', num_classes=10):
-        super(VGG, self).__init__()
+        super().__init__()
         self.features = self._make_layers(cfg[vgg_name], norm_method)
         self.classifier = nn.Linear(512, num_classes)
+        self.apply(self._init_weights)
+
+    def _init_weights(self, module):
+        for m in module.modules():
+            if isinstance(m, nn.Conv2d):
+                init.kaiming_normal_(m.weight.data, nonlinearity='relu')
+                if m.bias is not None:
+                    init.constant_(m.bias.data, 0)
+            elif isinstance(m, nn.Linear):
+                init.kaiming_normal_(m.weight.data)
+                if m.bias is not None:
+                    init.constant_(m.bias.data,0)
 
     def forward(self, x, with_latent=False, fake_relu=False, no_relu=False):
         assert (not fake_relu) and (not no_relu),  \
@@ -99,9 +112,8 @@ class VGG(nn.Module):
         return out
 
     def set_layer_norm(self, num_channels, norm_method, conv_layer_idx):
-        gn_param = 4 # 32  # I made this the same as the paper that used VGG16, but Hang used 16 for Resnet and 4 for LeNet
+        gn_param = 16 # 32  # I made this the same as the paper that used VGG16, but Hang used 16 for Resnet and 4 for LeNet
         ln_params = [32,16,8,8,4,4,2,2]
-        lrnb_spatial_param = 3
 
         norm_dict = {
             'nn': nn.Identity(),
@@ -111,7 +123,7 @@ class VGG(nn.Module):
             'ln': nn.LayerNorm((num_channels, ln_params[conv_layer_idx], ln_params[conv_layer_idx])),  # not sure if 7, 7 changes with layer?
             'lrnc': nn.LocalResponseNorm(5, alpha=0.001),
             'lrns': LRN(spatial_size=3, alpha=0.001, across_channel_spatial=False),
-            'lrnb': LRN_both(spatial_size=lrnb_spatial_param, channel_size=5, alpha=0.001)
+            'lrnb': LRN_both(spatial_size=3, channel_size=5, alpha=0.001)
         }
         return norm_dict[norm_method]
 
@@ -127,7 +139,7 @@ class VGG(nn.Module):
                 layers += [
                     nn.Conv2d(in_channels, x, kernel_size=3, padding=1),
                     self.set_layer_norm(x, norm_method, conv_layer_idx),
-                    nn.ReLU(inplace=True)
+                    nn.ReLU(inplace=False)
                 ]
                 in_channels = x
                 conv_layer_idx += 1

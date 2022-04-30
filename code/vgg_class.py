@@ -88,18 +88,18 @@ class VGG(nn.Module):
         super().__init__()
         self.features = self._make_layers(cfg[vgg_name], norm_method)
         self.classifier = nn.Linear(512, num_classes)
-        self.apply(self._init_weights)
+    #     self.apply(self._init_weights)
 
-    def _init_weights(self, module):
-        for m in module.modules():
-            if isinstance(m, nn.Conv2d):
-                init.kaiming_normal_(m.weight.data, nonlinearity='relu')
-                if m.bias is not None:
-                    init.constant_(m.bias.data, 0)
-            elif isinstance(m, nn.Linear):
-                init.kaiming_normal_(m.weight.data)
-                if m.bias is not None:
-                    init.constant_(m.bias.data,0)
+    # def _init_weights(self, module):
+    #     for m in module.modules():
+    #         if isinstance(m, nn.Conv2d):
+    #             init.kaiming_normal_(m.weight.data, nonlinearity='relu')
+    #             if m.bias is not None:
+    #                 init.constant_(m.bias.data, 0)
+    #         elif isinstance(m, nn.Linear):
+    #             init.kaiming_normal_(m.weight.data)
+    #             if m.bias is not None:
+    #                 init.constant_(m.bias.data,0)
 
     def forward(self, x, with_latent=False, fake_relu=False, no_relu=False):
         assert (not fake_relu) and (not no_relu),  \

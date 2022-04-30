@@ -197,9 +197,8 @@ def main():
     cluster = 'flatiron'  # flatiron or nyu-greene
     base_save_folder = 'results'
     model_name = 'vgg2'
-    run_number = 1
-    mode = 'eval'  # train, val
-    # weight_decay = [0.0005]
+    run_number = 2
+    mode = 'eval'  # train, eval
     weight_decay = [0.0005]
     seed = [1,2,3,4,5]
     norm_method = ['nn', 'bn', 'in', 'gn', 'ln', 'lrnb', 'lrnc', 'lrns']

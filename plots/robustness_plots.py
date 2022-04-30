@@ -57,7 +57,7 @@ params_vgg = {
     # 'normalize': ['lrnc', 'nn'],
     # 'normalize': ['lrns', 'nn'],
     # 'normalize': ['lrnb', 'nn'],
-    'run_num': 1
+    'run_num': 2
 }
 
 parameters = params_vgg
@@ -226,7 +226,7 @@ if type(seed)==list:
         plt.xticks(eps_plot, labels=['0.0', '1.0', '2.0', '4.0', '6.0', '8.0'])
         xlabel_info = '(x/255)'
     
-    zoomed=True
+    zoomed=False
 
     if model_name[:7] == 'convnet':
         model = model_name[:7]

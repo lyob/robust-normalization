@@ -21,7 +21,6 @@ params_convnet_disentangling_tr_and_eval_seeds = {
     'tr_seed': [3],
     'lr': 0.01,
     'wd': 0.0005,  # 0.0, 0.0005, 0.005, 0.05
-    'ws': False,
     'normalize': ["bn", 'gn', "in", "ln", "lrnc", "lrns", "lrnb", 'nn']
 }
 
@@ -31,7 +30,6 @@ params_convnet_widthscale = {
     'frontend': 'learned_conv',
     'norm_position': 'both',
     'seed': [1,2,3,4,5],
-    'tr_seed': False,
     'lr': 0.01,
     'wd': 0.0005,  # 0.0, 0.0005, 0.005, 0.05
     'ws': [2.5],  # 1.5, 2.0, 2.5, 3.0
@@ -44,37 +42,50 @@ params_resnet = {
     'frontend': 'learned_conv',
     'norm_position': 'both',
     'seed': [1,2,3,4,5,6,7,8,9,10],
-    'tr_seed': False,
     'lr': 0.01,
     'wd': 0.0,  # 0.0, 0.0005, 0.005, 0.05
-    'ws': False,
     # 'normalize': ['bn', 'gn', 'in', 'ln', 'lrnc', 'lrns', 'lrnb', 'nn']
     'normalize': ['nn']
 }
 
-parameters = params_resnet
+params_vgg = {
+    'dataset': 'cifar',
+    'model_name': 'vgg2',
+    'seed': [1,2,3,4,5],
+    'wd': 0.0005,
+    'normalize': ['bn', 'gn', 'in', 'ln', 'lrnc', 'lrns', 'lrnb', 'nn'],
+    # 'normalize': ['lrnc', 'nn'],
+    # 'normalize': ['lrns', 'nn'],
+    # 'normalize': ['lrnb', 'nn'],
+    'run_num': 1
+}
+
+parameters = params_vgg
 
 #%% parameters
-dataset = parameters['dataset']
-model_name = parameters['model_name']
-frontend = parameters['frontend']
-norm_position = parameters['norm_position']
-seed = parameters['seed']
-tr_seed = parameters['tr_seed']
-lr = parameters['lr']
-wd = parameters['wd']
-ws = parameters['ws']
-normalize = parameters['normalize']
+dataset = parameters.get('dataset')
+model_name = parameters.get('model_name')
+frontend = parameters.get('frontend')
+norm_position = parameters.get('norm_position')
+seed = parameters.get('seed')
+tr_seed = parameters.get('tr_seed')
+lr = parameters.get('lr')
+wd = parameters.get('wd')
+ws = parameters.get('ws')
+run_num = parameters.get('run_num')
+normalize = parameters.get('normalize')
 
 if dataset=="mnist":
     eps = [0.01, 0.03, 0.05, 0.07, 0.1, 0.15, 0.2]
     eps_plot = eps.copy()
     eps_plot.insert(0, 0)
+    dataset_name = 'mnist'
 
 elif dataset=="cifar":
     eps = [1.0, 2.0, 4.0, 6.0, 8.0]
     eps_plot = [i/255.0 for i in eps] 
     eps_plot.insert(0, 0)
+    dataset_name = 'cifar-10'
 
 # set color palette, and set last color to black
 # palette = sns.diverging_palette(220, 20, n=len(results))
@@ -95,25 +106,6 @@ for n in normalize:
 
 eps_name = [str(i) for i in eps]
 eps_name = '_'.join(eps_name)
-
-# #%% rename
-# if (model_name[:7]=='convnet'):
-#     for _, n in enumerate(normalize):
-#         if type(seed)==list:
-#             results_per_nm = {}
-#             for w in ws:
-#                 ws_string = f'-ws_{w}' if type(ws)==list else ''
-#                 print(ws_string)
-#                 if type(tr_seed)!=list:
-#                     print('NOT disentangling train and val mode, both seeds are the same')
-#                     for s in seed:
-#                         for d in wd:
-#                             file_path = os.path.join('..', 'results', f'{model_name}', 'eval_models', f'{frontend}_frontend-norm_{norm_position}{ws_string}')
-#                             file_name = os.path.join(file_path, f'model_name-lr_{lr}{ws_string}-wd_{d}-ev_seed_3-tr_seed_{s}-normalize_{n}-eps_{eps_name}.pkl')
-#                             if os.path.exists(file_name):
-#                                 file_name2 = os.path.join(file_path, f'{model_name}-lr_{lr}{ws_string}-wd_{d}-ev_seed_3-tr_seed_{s}-normalize_{n}-eps_{eps_name}.pkl')
-#                                 os.rename(file_name, file_name2)
-
 
 #%%
 # open results files 
@@ -175,6 +167,18 @@ elif (model_name[:6]=='resnet'):
                 out = pickle.load(f)
             results[n] = list(out['perturbed'])
             results[n].insert(0, out['clean'])
+elif (model_name[:3]=='vgg'):
+    for _, n in enumerate(normalize):
+        results_per_nm = {}
+        for s in seed:
+            file_name = f'nm:{n}-seed:{s}-wd:{wd}-run:{run_num}-eps:{eps_name}.pkl'
+            file_path = os.path.join('..', 'results', 'vgg', model_name, 'eval_models', file_name)
+            with open(file_path, 'rb') as f:
+                out = pickle.load(f)
+            results_per_nm[s] = list(out['perturbed'])
+            results_per_nm[s].insert(0, out['clean'])
+        results[n] = results_per_nm
+
 
 
 #%% plot the data
@@ -216,21 +220,30 @@ if type(seed)==list:
     else:
         norm_statement = f'normalization at both (1&2) layers'
     # ax.set(title=f'{model_name} with {frontend} frontend, {norm_statement}. \nseeds = {seed}')
-    if model_name[:7] == 'convnet':
+    if dataset=='mnist':
         plt.xticks((0, 0.05, 0.1, 0.15, 0.2))
-        model = model_name[:7]
-        dataset_name = 'mnist'
-        xlabel_info = ''
-            
-    elif model_name[:6] == 'resnet':
+    elif dataset=='cifar':
         plt.xticks(eps_plot, labels=['0.0', '1.0', '2.0', '4.0', '6.0', '8.0'])
-        model = model_name[:6]
-        dataset_name = 'cifar-10'
         xlabel_info = '(x/255)'
+    
+    zoomed=True
+
+    if model_name[:7] == 'convnet':
+        model = model_name[:7]
+        xlabel_info = ''
+    elif model_name[:6] == 'resnet':
+        model = model_name[:6]
         ax.set_ylim(top=1.0)
+    elif model_name[:3] == 'vgg':
+        model = model_name[:3]
+        ax.set_ylim(top=1.0)
+        if zoomed:
+            ax.set_ylim([0.1, 0.7])
+            ax.set_xlim([0,0.02])
+
     title_info = f', width scale = {ws[0]}' if type(ws)==list else ''
     ax.set(xlabel=f"attack strength {xlabel_info}", ylabel="accuracy")
-    ax.set(title=f'{model} trained on {dataset_name}, seed={seed}\n weight decay = {wd}{title_info}')
+    ax.set(title=f'{model} trained on {dataset_name}, seeds={seed}\n weight decay = {wd}{title_info}')
 
             
 else:
@@ -243,7 +256,6 @@ else:
         ax.plot(eps_plot, accuracies, 'go-', color=colors[idx], markersize=5, label=name)
         idx += 1
 
-
     ax.set(xlabel="attack strength", ylabel="accuracy", title=dataset)
     if dataset=='cifar':
         plt.xticks((0, 0.01, 0.02, 0.03))
@@ -254,14 +266,21 @@ else:
 if model=='convnet':
     save_path = os.path.join('.', 'figures', 'robustness-convnet_widthscale', f'ws-{ws[0]}')
     if not os.path.exists(save_path):
-        os.makedirs(save_path)
+        os.makedirs(save_path, exist_ok=True)
     save_name = os.path.join(save_path, f'robustness-{model_name}-{frontend}_frontend-norm_{norm_position}-seeds_{seed}-wd_{wd}.png')
 elif model=='resnet':
     save_path = os.path.join('.', 'figures', f'{model}-robustness')
     if not os.path.exists(save_path):
-        os.makedirs(save_path)
+        os.makedirs(save_path, exist_ok=True)
     save_name = os.path.join(save_path, f'robustness-{model_name}-seeds_{seed}-wd_{wd}-nm_{normalize}.png')
-
+elif model=='vgg':
+    save_path = os.path.join('.', 'figures', f'{model}-robustness')
+    if not os.path.exists(save_path):
+        os.makedirs(save_path, exist_ok=True)
+    if zoomed: 
+        save_path = os.path.join(save_path, 'zoomed')
+    norm_method = normalize if normalize != ['bn', 'gn', 'in', 'ln', 'lrnc', 'lrns', 'lrnb', 'nn'] else 'all'
+    save_name = os.path.join(save_path, f'robustness-model={model_name}-norm={norm_method}-seeds={seed}-wd={wd}.png')
 plt.savefig(save_name, dpi=400, facecolor='white', bbox_inches='tight', transparent=False)
 
 

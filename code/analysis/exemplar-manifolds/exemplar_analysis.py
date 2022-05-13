@@ -191,7 +191,7 @@ print(df.head(3))
 results_dir = 'results'
 file_name = f'dataset={dataset}-model={model_name}-manifold={manifold_type}-eps={eps}-iter={max_iter}-random={random}-seed={seed}.csv'
 
-save_file = os.path.join(results_dir, file_name)
+save_file = os.path.join(results_dir, model_name, file_name)
 print(save_file)
 df.to_csv(save_file)
 

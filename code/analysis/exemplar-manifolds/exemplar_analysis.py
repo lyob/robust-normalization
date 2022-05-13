@@ -1,5 +1,5 @@
 #%% import packages
-%load_ext autoreload
+%reload_ext autoreload
 %autoreload 2
 
 import os
@@ -8,6 +8,7 @@ from glob import glob
 
 import torch
 import torch.nn as nn
+import torch.optim as optim
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -18,34 +19,28 @@ from art.utils import load_mnist
 #%% set up parameters 
 seed = 0
 
-## 2. exemplar manifolds analysis example parameters 
+## manifolds analysis parameters
 manifold_type = 'exemplar' # 'class' for traditional label based manifolds, 'exemplar' for individual exemplar manifolds
-P = 50 # number of manifolds
-M = 50 # number of examples per manifold
-N = 2000 # maximum number of features to use
+P = 50 # number of manifolds, i.e. the number of images 
+M = 50 # number of examples per manifold, i.e. the number of images that lie in an epsilon ball around the image  
+N = 2000 # maximum number of features to use ??
 
 # determine the type of adversarial examples to use for constructing the manifolds
-# eps = 8/255
-eps = 0.1
-# eps = 0
+eps = 0.1  # 8/255, 0
 max_iter = 1
 eps_step_factor = 1
 eps_step = eps / eps_step_factor
-random = False # adversarial perturbation if false, random perturbation if true
+
+random = False  # adversarial perturbation if false, random perturbation if true
 
 #%% model and dataset details
-
 ## regular ResNet18 ('CIFAR_ResNet18') or VOneResNet18 with Gaussian Noise ('CIFAR_VOneResNet18')
 model_name = 'CIFAR_ResNet18'
 dataset = 'CIFAR'
 
-# how about MNIST with ConvNet?
-model_name = 'MNIST_ConvNet'
-dataset = 'MNIST'
-
-# where to save results and how to name the files
-results_dir = 'results'
-file_name = f'model_{model_name}-manifold_{manifold_type}-eps_{eps}-iter_{max_iter}-random_{random}-seed_{seed}.csv'
+# how about MNIST with a LeNet
+model_name = 'lenet'  # MNIST_ConvNet
+dataset = 'mnist'
 
 #%% Load train and test dataset, and show an example. 
 (x_train, y_train), (x_test, y_test), min_pixel_value, max_pixel_value = load_mnist()
@@ -58,34 +53,44 @@ x_train.shape, x_test.shape
 
 
 #%% define the MNIST model
+os.chdir('/Users/blyo/Documents/research/chung-lab/robust-normalization/code')
+from mnist_layer_norm import Net_both
+os.chdir('./analysis/exemplar-manifolds')
+from helpers import load_model, art_wrap_model, accuracy
 
-# sys.path.append('..')
-os.chdir('../..')
-from mnist_layer_norm import Net
+lenet_parameters = {
+    'version': 'convnet4',
+    'normalize': 'nn',
+    'frontend': 'learned_conv',
+    'seed': 1,
+    'lr': 0.01,
+    'wd': 0.005
+}
+parameters = lenet_parameters
+normalize = parameters.get('normalize')
+frontend = parameters.get('frontend')
+version = parameters.get('version')
+seed = parameters.get('seed')
+wd = parameters.get('wd')
+lr = parameters.get('lr')
+
+# define the leNet model
 simple_channels = 16
 complex_channels = 16
 ksize = 5
-normalize = 'nn'
-
 conv_1 = nn.Conv2d(in_channels=1, out_channels=simple_channels+complex_channels, kernel_size=ksize, stride=2, padding=ksize//2)
-model = Net(conv_1, simple_channels + complex_channels, normalize=normalize)
-
+model = Net_both(conv_1, simple_channels + complex_channels, normalize=normalize)
 
 #%% load model state and dataset
-from helpers import load_model, art_wrap_model, accuracy
-
 global device
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device = "cpu"
 
-# load the model
-model_path = os.path.abspath(os.path.join('..', 'results', 'mnist_regularize', 'trained_models', 'standard', f'standard-lr_0.01-wd_0.0005-seed_17-normalize_{normalize}.pth'))
+# load the model weights
+load_dir = os.path.join('..', '..', '..')
+model_path = os.path.join(load_dir, 'results', version, 'trained_models', f'{frontend}_frontend-norm_both', f'{version}-lr_{lr}-wd_{wd}-seed_{seed}-normalize_{normalize}.pth')
 model.load_state_dict(torch.load(model_path, map_location=device))
 
-
-import torch.optim as optim
-lr = 0.01
-wd = 0.0005
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=wd)
 
@@ -181,7 +186,12 @@ df['random'] = random
 print(df.head(3))
 
 # store the results
-save_file = os.path.abspath(os.path.join('exemplar-manifolds', results_dir, file_name))
+
+# where to save results and how to name the files
+results_dir = 'results'
+file_name = f'dataset={dataset}-model={model_name}-manifold={manifold_type}-eps={eps}-iter={max_iter}-random={random}-seed={seed}.csv'
+
+save_file = os.path.join(results_dir, file_name)
 print(save_file)
 df.to_csv(save_file)
 

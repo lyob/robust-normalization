@@ -16,36 +16,46 @@ os.chdir('../results')
 print(os.path.abspath('.'))
 
 #%% parameters
-# model_name = 'standard'
-model_name = 'convnet3'
-# frontend = 'vone_filterbank'  # learned_conv or vone_filterbank
-frontend = 'learned_conv'  # learned_conv or vone_filterbank or frozen_conv
-# frontend = 'frozen_conv'  # learned_conv or vone_filterbank or frozen_conv
-norm_position = 'both'
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-seed = 17
-norm_method = 'nn'
-lr = 0.01
-wd = 0.0005
 
-simple_channels = 16
-complex_channels = 16
-ksize = 5
+parameters = {
+    'model_name': 'convnet4',
+    'frontend': 'learned_conv',  # learned_conv or vone_filterbank or frozen_conv
+    'norm_position': 'both',
+    'seed': 17,
+    'norm_method': 'nn',
+    'lr': 0.01,
+    'wd': 0.005
+}
+
+parameters = parameters
+
+model_name = parameters.get('model_name')
+frontend = parameters.get('frontend')
+norm_position = parameters.get('norm_position')
+seed = parameters.get('seed')
+norm_method = parameters.get('norm_method')
+lr = parameters.get('lr')
+wd = parameters.get('wd')
+
 
 #%% optional: check to see if the frozen weights are actually frozen
 # we can do this by comparing the frozen weights against the pre-trained weights
 load_folder = os.path.join('..', 'code', 'saved_model_weights')
-frozen_model = {'name': 'convnet3', 'seed': '17', 'type': 'frozen'}
-pretrained_model = {'name': 'convnet3', 'seed': '17', 'type': 'pretrained'}
+frozen_model = {**parameters, 'type': 'frozen'}
+pretrained_model = {**parameters, 'type': 'pretrained'}
 
+simple_channels = 16
+complex_channels = 16
+ksize = 5
 conv_1 = nn.Conv2d(in_channels=1, out_channels=simple_channels+complex_channels, kernel_size=ksize, stride=2, padding=ksize//2)
 # model = Net(conv_1, simple_channels + complex_channels, norm_method=norm_method, norm_position=norm_position)
-model = Net_both(conv_1, simple_channels + complex_channels)
+model = Net_both(conv_1, simple_channels + complex_channels, normalize=norm_method)
 
-#%%
+#%% extract the weights and load them into new model
 extracted_weights = {}
 for i in [frozen_model, pretrained_model]:
-    name = i['name']
+    name = i['model_name']
     seed = i['seed']
     type = i['type']
     loaded_model_path = os.path.join(load_folder, f'{name}-lr_{str(lr)}-wd_{str(wd)}-seed_{seed}-normalize_{norm_method}.pth')
@@ -57,8 +67,6 @@ for i in [frozen_model, pretrained_model]:
 
 print(extracted_weights[f'frozen-conv_1.weight'][0])
 print(extracted_weights[f'pretrained-conv_1.weight'][0])
-
-
 
 #%% load data
 if model_name == 'convnet' or model_name[:7]=='convnet':

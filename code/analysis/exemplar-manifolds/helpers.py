@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+from tqdm.auto import tqdm
 
 from art.attacks.evasion import ProjectedGradientDescent
 from art.estimators.classification import PyTorchClassifier, EnsembleClassifier
@@ -311,7 +312,7 @@ def model_layer_map(name, model, norm='nn'):
             '5.block4'           : model.layer4,
             '6.linear'           : model.linear
         }
-    elif name == 'MNIST_ConvNet':
+    elif name == 'lenet':
         norms = {
             'bn'   : {'2.norm': model.bn1, '5.norm': model.bn2}, 
             'ln'   : {'2.norm': model.ln1, '5.norm': model.ln2},
@@ -347,7 +348,7 @@ def MFTMA_analyze_activations(features_dict, P, M, N, kappa=0, NT=100, SIMCAP=Fa
     """
     np.random.seed(seed)
     dfs = []
-    for layer, features in features_dict.items():
+    for layer, features in tqdm(features_dict.items()):
         X = process_features(features, P, M, N, seed=seed, verbose=verbose)
 
         # collect MFTMA measures

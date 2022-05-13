@@ -52,9 +52,21 @@ def select_input_img(dataset, idx):
     plt.show()
     return input_img
 
+def calc_metrics(eig_vals, inverse=False):
+    ev_logdet = torch.sum(torch.log(eig_vals[:400]))
+    ev_sum = torch.sum(eig_vals)
+    # PR
+    ev_sum_sq = torch.sum(eig_vals)**2
+    ev_sq_sum = torch.sum(eig_vals**2)
+    if inverse:
+        pr = ev_sq_sum / ev_sum_sq
+    pr = ev_sum_sq / ev_sq_sum
+    npr = pr / len(eig_vals)
+    return ev_logdet, ev_sum, pr, npr
+
 # calculate the FIM of the model wrt the input image, and return a measure of model sensitivity
 def calc_model_fim(model_name, norm_method, model, input_img, layers, layer_names):    
-    loaded_metric = {}
+    metrics = {}
     fig, ax = plt.subplots(1, 1, sharey='all')
     for idx, l in enumerate(layers):
         print(f'layer {l}')
@@ -81,16 +93,22 @@ def calc_model_fim(model_name, norm_method, model, input_img, layers, layer_name
         ax.legend()
         fig.tight_layout()
 
-        # calculate the volume of the sensitivity
-        ev_logdet = torch.sum(torch.log(eigval[:400]))
-        print(f'log determinant of the FIM is {ev_logdet}')
+        # calculate the volume of sensitivity and its proxies
+        ev_logdet, ev_sum, pr, npr = calc_metrics(eigval)
 
-        ev_sum = torch.sum(eigval)
-        print(f'sum of the eigenvalues is {ev_sum}')
+        # # calculate the volume of the sensitivity via the log determinant
+        # ev_logdet = torch.sum(torch.log(eigval[:400]))
+        # print(f'log determinant of the FIM is {ev_logdet}')
+
+        # ev_sum = torch.sum(eigval)
+        # print(f'sum of the eigenvalues is {ev_sum}')
 
         metrics_per_layer['ev_logdet'] = ev_logdet
         metrics_per_layer['ev_sum'] = ev_sum
         metrics_per_layer['max_ev'] = max_eigval
+        metrics_per_layer['pr'] = pr
+        metrics_per_layer['npr'] = npr
+
 
         metrics[l] = metrics_per_layer
     return metrics
@@ -143,6 +161,7 @@ for nm in norm_method:
     metrics[nm] = metrics_per_nm
     print(f'------------------------\n')
 
+
 # save the metrics
 model_save_name = 'lenet' if model_name[:7]=='convnet' else model_name
 metric_save_dir = os.path.join('.', 'analysis', 'fisher-info', 'saved-metrics', model_name)
@@ -179,6 +198,8 @@ sharey='all'  # 'all' or 'none'
 plot_metrics('ev_sum', 'sum of eigenvalues', sharey)
 plot_metrics('max_ev', 'max eigenvalue', sharey)
 plot_metrics('ev_logdet', 'logdet of eigenvalues (largest 400 only)', sharey)
+plot_metrics('pr', 'PR of eigenvalues', sharey)
+plot_metrics('npr', 'normalized PR of eigenvalues', sharey)
 
 # %% calculate the change in sensitivity, relative to no norm
 # load the saved metric
@@ -191,18 +212,22 @@ file = open(os.path.join(metric_load_dir, metric_load_file), 'rb')
 loaded_metric = pickle.load(file)
 
 # calculate change in chosen metric, relative to no norm
-def calc_relative_metric_change(metric, model_name, suptitle):
+def calc_relative_metric_change(metric, model_name, suptitle, type='subtract'):
     if model_name[:7] == 'convnet':
-        delta_1 = {}
-        delta_2 = {}
+        delta_layer1 = {}
+        delta_layer2 = {}
         for nm in norm_method:
-            delta_1[nm] = loaded_metric[nm][1][metric] - loaded_metric[nm][0][metric]
-            delta_2[nm] = loaded_metric[nm][4][metric] - loaded_metric[nm][3][metric]
+            if type=='subtract':
+                delta_layer1[nm] = loaded_metric[nm][1][metric] - loaded_metric[nm][0][metric]
+                delta_layer2[nm] = loaded_metric[nm][4][metric] - loaded_metric[nm][3][metric]
+            elif type=='divide':
+                delta_layer1[nm] = loaded_metric[nm][1][metric] / loaded_metric[nm][0][metric]
+                delta_layer2[nm] = loaded_metric[nm][4][metric] / loaded_metric[nm][3][metric]
 
         fig, ax = plt.subplots(1, 2, figsize=(10, 5))
         for nm in norm_method:
-            barlist1 = ax[0].bar(nm, delta_1[nm])
-            barlist2 = ax[1].bar(nm, delta_2[nm])
+            barlist1 = ax[0].bar(nm, delta_layer1[nm])
+            barlist2 = ax[1].bar(nm, delta_layer2[nm])
             barlist1[0].set_color(colorlist[nm])
             barlist2[0].set_color(colorlist[nm])
         ax[0].set(title='first normalization layer')

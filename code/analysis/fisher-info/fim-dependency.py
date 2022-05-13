@@ -159,6 +159,7 @@ yvals_pr = 7.17872*np.ones(len(xvals))
 yvals_sum = 3.2836154*(xvals**2)
 yvals_sum_norm = 0.328361*(xvals**2)
 yvals_log_det = 20*np.log2(xvals) - 19
+# yvals_log_det = np.log2(xvals) - 20
 
 ax[0,0].set(title=f'max eigval')
 ax[0,0].plot(xvals, yvals_maxeig, alpha=0.3, color='orange', label='$y = A_0 \cdot x^2$')
@@ -261,6 +262,8 @@ ax[2,1].set(title=f'log determinant')
 fig.suptitle('how eigenvalue measures change with the layer dimension')
 fig.tight_layout()
 
+
+
 #%% expand the network to 2, 3 layers and calculate each layer's sensitivity to the input
 # this is equivalent to y = (x @ M1.T) @ M2.T
 class LinearModelTwoLayers(nn.Module):
@@ -270,10 +273,11 @@ class LinearModelTwoLayers(nn.Module):
         torch.manual_seed(0)
         self.M1 = nn.Linear(n, m, bias=False)
         self.M2 = nn.Linear(m, l, bias=False)
+        self.y0 = torch.ones(m)
     
     def forward(self, x):
-        x = self.M1(x)  # this computes x = x @ M.T
-        y = self.M2(x)  # this computes y = x @ M.T
+        self.y0 = self.M1(x)  # this computes x = x @ M.T
+        y = self.M2(self.y0)  # this computes y = x @ M.T
         return y
 
 n = 25  # input dim
@@ -284,14 +288,21 @@ mdl_2l = LinearModelTwoLayers(n, m, l)
 # example input
 x0 = torch.ones((1, 1, 1, n))
 # output on random (initial) weights
-y0 = mdl_2l(x0)
+y1 = mdl_2l(x0)
+# intermediate "output"
+y0 = mdl_2l.y0
 
-fig, ax = plt.subplots(2, 1, sharex='all', sharey='all')
+
+fig, ax = plt.subplots(3, 1, sharex='all', sharey='all')
 ax[0].stem(x0.squeeze(), use_line_collection=True)
 ax[0].set(title=f'{n:d}D Input')
 
 ax[1].stem(y0.squeeze().detach(), use_line_collection=True, markerfmt='C1o')
-ax[1].set(title=f'{l:d}D Output')
+ax[1].set(title=f'{m:d}D Intermediate Output')
+
+ax[2].stem(y1.squeeze().detach(), use_line_collection=True, markerfmt='C1o')
+ax[2].set(title=f'{l:d}D Output')
+
 
 fig.tight_layout()
 
@@ -299,37 +310,51 @@ fig.tight_layout()
 mdl_2l.eval()
 M1 = mdl_2l.M1.weight.detach()
 M2 = mdl_2l.M2.weight.detach()
-Mboth = M2 @ M1
-# print(torch.allclose(((x0 @ M1.T) @ M2.T), x0 @ (M2 @ M1).T))
 
-fig, ax = plt.subplots(3, 2, figsize=(10, 10))
-ax[0,0].imshow(M1)
-ax[0,0].set(title=f'1st weight matrix of 2 layer linear model')
-ax[0,1].imshow(Mboth)
-ax[0,1].set(title=f'2nd weight matrix of 2 layer linear model')
+def calc_FIM_eigvals(M1, M2):
+    Mboth = M2 @ M1
+    F1 = M1.T @ M1
+    Fboth = Mboth.T @ Mboth
+    eigvals1 = eigdecomp(F1)
+    eigvals_both = eigdecomp(Fboth)
+    return Mboth, eigvals1, eigvals_both
 
-F1 = M1.T @ M1  # should have shape (n, n)
-Fboth = Mboth.T @ Mboth  # should have shape (n, n)
-ax[1,0].imshow(F1)
-ax[1,0].set(title=f'FIM of first layer wrt input')
-ax[1,1].imshow(Fboth)
-ax[1,1].set(title=f'FIM of both layers wrt input')
+def plot_FIM_eigvals(M1, M2):
+    Mboth = M2 @ M1
+    # print(torch.allclose(((x0 @ M1.T) @ M2.T), x0 @ (M2 @ M1).T))
 
-eigvals1 = eigdecomp(F1)
-eigvals_both = eigdecomp(Fboth)
+    fig, ax = plt.subplots(3, 2, figsize=(10, 10))
+    ax[0,0].imshow(M1)
+    ax[0,0].set(title=f'1st weight matrix of 2 layer linear model')
+    ax[0,1].imshow(Mboth)
+    ax[0,1].set(title=f'2nd weight matrix of 2 layer linear model')
 
-ax[2,0].plot(eigvals1, '.' )
-ax[2,0].set(title=f'eigvals of the 1st layer FIM')
-ax[2,1].plot(eigvals_both, '.' )
-ax[2,1].set(title=f'eigvals of the FIM for both layers')
+    F1 = M1.T @ M1  # should have shape (n, n)
+    Fboth = Mboth.T @ Mboth  # should have shape (n, n)
+    ax[1,0].imshow(F1)
+    ax[1,0].set(title=f'FIM of first layer wrt input')
+    ax[1,1].imshow(Fboth)
+    ax[1,1].set(title=f'FIM of both layers wrt input')
 
-fig.tight_layout()
+    eigvals1 = eigdecomp(F1)
+    eigvals_both = eigdecomp(Fboth)
+
+    ax[2,0].plot(eigvals1, '.' )
+    ax[2,0].set(title=f'eigvals of the 1st layer FIM')
+    ax[2,1].plot(eigvals_both, '.' )
+    ax[2,1].set(title=f'eigvals of the FIM for both layers')
+
+    fig.suptitle(f'2 layer network: {n}D input, {m}D intermed, {l}D output')
+    fig.tight_layout()
+    return Mboth, eigvals1, eigvals_both
+
+M_b, eigvals_a, eigvals_b = plot_FIM_eigvals(M1, M2)
 
 #%% calculate measures
-volumes1 = calc_measures(eigvals1, m)
-volumes_both = calc_measures(eigvals_both, l)
-print(volumes1)
-print(volumes_both)
+volumes_a = calc_measures(eigvals_a, m)
+volumes_b = calc_measures(eigvals_b, l)
+print(volumes_a)
+print(volumes_b)
 
 #%% scale transformations
 volumes1 = {}
@@ -337,7 +362,7 @@ volumesb = {}
 fig, ax = plt.subplots(6, 2, figsize=(12, 12), sharex='all')
 for s in range(1, 10, 1):
     M1s = scale(M1, s)
-    Mbs = scale(Mboth, s)
+    Mbs = scale(M_b, s)
     
     F1s = M1s.T @ M1s
     Fbs = Mbs.T @ Mbs
@@ -424,9 +449,150 @@ fig2.suptitle('measures: (second layer / first layer)')
 fig.tight_layout()
 fig2.tight_layout()
 
+#%% dependence on layer ambient dimension
+n = 25  # input dim
+m = 25  # intermediate dim
+l = 10  # output dim
+mdl_2l_25_25_10 = LinearModelTwoLayers(n, m, l)
+
+# example input
+x0 = torch.ones((1, 1, 1, n))
+# output on random (initial) weights
+y1 = mdl_2l_25_25_10(x0)
+# intermediate "output"
+y0 = mdl_2l_25_25_10.y0
+
+fig, ax = plt.subplots(3, 1, sharex='all', sharey='all')
+ax[0].stem(x0.squeeze(), use_line_collection=True)
+ax[0].set(title=f'{n:d}D Input')
+
+ax[1].stem(y0.squeeze().detach(), use_line_collection=True, markerfmt='C1o')
+ax[1].set(title=f'{m:d}D Intermediate Output')
+
+ax[2].stem(y1.squeeze().detach(), use_line_collection=True, markerfmt='C1o')
+ax[2].set(title=f'{l:d}D Output')
+
+fig.tight_layout()
+
+#%% plot the FIM and eigvals of the 25D-25D-10D network
+mdl_2l_25_25_10.eval()
+
+M1_2 = mdl_2l_25_25_10.M1.weight.detach()
+M2_2 = mdl_2l_25_25_10.M2.weight.detach()
+
+M_b_2, eigvals_a_2, eigvals_b_2 = plot_FIM_eigvals(M1_2, M2_2)
+
+#%% calculate the FIM metrics 
+volumes_a_2 = calc_measures(eigvals_a_2, m)
+volumes_b_2 = calc_measures(eigvals_b_2, l)
+print(volumes_a_2)
+print(volumes_b_2)
+
+#%% compare the 25-10-10 network against the 25-25-10 network
+models = ['25-10-10', '25-25-10']
+
+fig, ax = plt.subplots(5,2, sharex='all', figsize=(8,10))
+ax[0,0].set(title='layer 1')
+ax[0,1].set(title='both layers')
+
+ax[0,0].set(ylabel=f'max eigenvalue')
+ax[0,0].bar(models, [volumes_a['max_eigval'], volumes_a_2['max_eigval']])
+ax[0,1].bar(models, [volumes_b['max_eigval'], volumes_b_2['max_eigval']])
+ax[1,0].set(ylabel=f'sum of eigenvalues')
+ax[1,0].bar(models, [volumes_a['eigval_sum'], volumes_a_2['eigval_sum']])
+ax[1,1].bar(models, [volumes_b['eigval_sum'], volumes_b_2['eigval_sum']])
+ax[2,0].set(ylabel=f"sum of eigenvalues (normed)")
+ax[2,0].bar(models, [volumes_a['eigval_sum_normalized'], volumes_a_2['eigval_sum_normalized']])
+ax[2,1].bar(models, [volumes_b['eigval_sum_normalized'], volumes_b_2['eigval_sum_normalized']])
+ax[3,0].set(ylabel=f'normalized PR')
+ax[3,0].bar(models, [volumes_a['npr'], volumes_a_2['npr']])
+ax[3,1].bar(models, [volumes_b['npr'], volumes_b_2['npr']])
+ax[4,0].set(ylabel=f'log determinant')
+ax[4,0].bar(models, [volumes_a['log_det'], volumes_a_2['log_det']])
+ax[4,1].bar(models, [volumes_b['log_det'], volumes_b_2['log_det']])
+
+fig.suptitle('metric dependence on intermediate width dim')
+fig.tight_layout()
 
 
+#%% can we scale this up? to a range of intermediate layer sizes
+n = 25  # input dim
+ms = [5, 10, 15, 20, 25, 30, 35, 40]  # intermediate dim
+l = 10  # output dim
 
+# example input
+x0 = torch.ones((1, 1, 1, n))
+
+max_ev = {'a': [], 'b': []}
+sum_ev = {'a': [], 'b': []}
+sum_ev_norm = {'a': [], 'b': []}
+pr = {'a': [], 'b': []}
+npr = {'a': [], 'b': []}
+logdet = {'a': [], 'b': []}
+
+for m in ms:
+    mdl = LinearModelTwoLayers(n, m, l)
+    # output on random (initial) weights
+    y1 = mdl(x0)
+    # intermediate "output"
+    y0 = mdl.y0
+    
+    mdl.eval()
+    
+    M1 = mdl.M1.weight.detach()
+    M2 = mdl.M2.weight.detach()
+
+    # M_b, eigvals_a, eigvals_b = plot_FIM_eigvals(M1, M2) 
+    M_b, eigvals_a, eigvals_b = calc_FIM_eigvals(M1, M2)
+
+    volumes_a = calc_measures(eigvals_a, m)
+    volumes_b = calc_measures(eigvals_b, l) 
+
+    # 1st layer
+    max_ev['a'].append(volumes_a['max_eigval'])
+    sum_ev['a'].append(volumes_a['eigval_sum'])
+    sum_ev_norm['a'].append(volumes_a['eigval_sum_normalized'])
+    pr['a'].append(volumes_a['pr'])
+    npr['a'].append(volumes_a['npr'])
+    logdet['a'].append(volumes_a['log_det'])
+
+    # second layer
+    max_ev['b'].append(volumes_b['max_eigval'])
+    sum_ev['b'].append(volumes_b['eigval_sum'])
+    sum_ev_norm['b'].append(volumes_b['eigval_sum_normalized'])
+    pr['b'].append(volumes_b['pr'])
+    npr['b'].append(volumes_b['npr'])
+    logdet['b'].append(volumes_b['log_det'])
+
+#%% plot the intermed layer metric dependence on intermed layer dim
+fig, ax = plt.subplots(5, 1, figsize=(8, 12))
+ax[0].set(ylabel=f'max eigenvalue')
+ax[0].plot(ms, max_ev['a'])
+ax[1].set(ylabel=f'sum of eigvals')
+ax[1].plot(ms, sum_ev['a'])
+ax[2].set(ylabel=f'normed sum of evs', ylim=[0.2, 0.5])
+ax[2].plot(ms, sum_ev_norm['a'])
+ax[3].set(ylabel=f'normed PR')
+ax[3].plot(ms, npr['a'])
+ax[4].set(ylabel=f'log determinant', xlabel='intermediate layer ambient dimension')
+ax[4].plot(ms, logdet['a'])
+fig.suptitle('intermediate layer metric dependence on intermediate layer ambient dimension')
+fig.tight_layout()
+
+#%% plot the final layer metric dependence on intermed layer dim
+fig, ax = plt.subplots(5, 1, figsize=(8, 12))
+ax[0].set(ylabel=f'max eigenvalue')
+ax[0].plot(ms, max_ev['b'])
+ax[1].set(ylabel=f'sum of eigvals')
+ax[1].plot(ms, sum_ev['b'])
+ax[2].set(ylabel=f'normed sum of evs')
+ax[2].plot(ms, sum_ev_norm['b'])
+ax[3].set(ylabel=f'normed PR')
+ax[3].plot(ms, npr['b'])
+ax[4].set(ylabel=f'log determinant', xlabel='intermediate layer ambient dimension')
+ax[4].plot(ms, logdet['b'])
+fig.suptitle('final layer metric dependence on intermediate layer ambient dimension')
+fig.tight_layout()
 
 # %% playing around with dependencies
 '''

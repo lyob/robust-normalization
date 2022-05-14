@@ -1,6 +1,7 @@
 # import packages
 import os
 import sys
+import random
 
 import torch
 import torch.nn as nn
@@ -12,11 +13,23 @@ from art.estimators.classification import PyTorchClassifier
 import argparse
 import submitit
 
+os.chdir('/mnt/ceph/users/blyo1/syLab/robust-normalization/code/analysis/exemplar-manifolds')
+sys.path.append('/mnt/ceph/users/blyo1/syLab/robust-normalization/code/analysis/exemplar-manifolds')
 from helpers import accuracy, perturb_stimuli, construct_manifold_stimuli, Hook, model_layer_map, MFTMA_analyze_activations
 
-os.chdir('..')
-from mnist_layer_norm import Net
+# os.chdir('/mnt/ceph/users/blyo1/syLab/robust-normalization/code')
+# sys.path.append('/mnt/ceph/users/blyo1/syLab/robust-normalization/code')
+# print(sys.path)
+# print(os.path.abspath('.'))
+from mnist_layer_norm import Net_both
 
+def seed_everything(seed):
+    #initiate seed to try to make the result reproducible 
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
 
 # Load train and test dataset, and show an example. 
 def load_dataset():
@@ -33,24 +46,23 @@ def load_dataset():
 
 # define the MNIST model
 def load_model(model_name, norm_method):
-    if model_name == 'lenet':
+    if model_name[:7] == 'convnet':
         simple_channels = 16
         complex_channels = 16
         ksize = 5
 
         conv_1 = nn.Conv2d(in_channels=1, out_channels=simple_channels+complex_channels, kernel_size=ksize, stride=2, padding=ksize//2)
-        model = Net(conv_1, simple_channels + complex_channels, normalize=norm_method)
+        model = Net_both(conv_1, simple_channels + complex_channels, normalize=norm_method)
     return model
 
 
 # load model state and dataset
-def load_model_state(norm_method, model, wd, lr, model_seed=1, run_number=1):
+def load_model_state(model_load_name, norm_method, model, wd, lr, load_seed=1, run_number=1):
     # load the model
-    model_path = os.path.abspath(os.path.join('..', '..', 'results', 'mnist_regularize', 'trained_models', 'standard', f'standard-lr_{lr}-wd_{wd}-seed_{model_seed}-normalize_{norm_method}.pth'))
+    load_dir = os.path.join('../../..')
+    model_path = os.path.join(load_dir, 'results', model_load_name, 'trained_models', f'learned_conv_frontend-norm_both', f'{model_load_name}-lr_{lr}-wd_{wd}-seed_{load_seed}-normalize_{norm_method}.pth')
     model.load_state_dict(torch.load(model_path, map_location=device))
 
-    lr = 0.01
-    wd = 0.0005
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=wd)
 
@@ -137,10 +149,12 @@ def extract_representations(model_name, model, normalize, X_adv):
 
 
 # run MFTMA analysis on all features in the features_dict -- this can take a few minutes!
-def run_mftma(features_dict, P, M, N, seed, model_name, manifold_type, norm_method, clean_accuracy, adv_accuracy, eps, max_iter, random):
+def run_mftma(features_dict, P, M, N, seed, model_name, manifold_type, norm_method, clean_accuracy, adv_accuracy, eps, eps_step_factor, max_iter, random):
     print('running mftma...')
 
     df = MFTMA_analyze_activations(features_dict, P, M, N=N, seed=seed)
+
+    eps_step = eps/eps_step_factor
 
     ## add additional meta data
     df['model'] = model_name
@@ -155,40 +169,46 @@ def run_mftma(features_dict, P, M, N, seed, model_name, manifold_type, norm_meth
     return df
 
 
-def save_results(df, results_dir, file_name):
+def save_results(df, results_dir, model_save_name, file_name):
     print('saving results...')
 
     # store the results
-    save_file = os.path.abspath(os.path.join('exemplar-manifolds', results_dir, file_name))
+    save_dir = os.path.join('.', results_dir, model_save_name)
+    if not os.path.exists(save_dir):
+        os.mkdir(save_dir)
+    save_file = os.path.join(save_dir, file_name)
     df.to_csv(save_file)
 
-    print(f'results saved at: {results_dir}')
+    print(f'results saved at: {save_dir}')
 
 
 ##############################################################################################################
 
 
-def run_analysis(model_name, manifold_type, norm_method, eps, max_iter, eps_step_factor, attack_mode, random, seed, P, M, N, wd, lr, results_dir='results'):
-    file_name = f'model_{model_name}-manifold_{manifold_type}-norm_{norm_method}-eps_{eps}-iter_{max_iter}-random_{random}-seed_{seed}.csv'
+def run_analysis(model_load_name, model_save_name, manifold_type, norm_method, eps, max_iter, eps_step_factor, attack_mode, random, seed, P, M, N, wd, lr, load_seed, results_dir='results'):
+    seed_everything(seed)
+    global device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    model = load_model(model_name, norm_method)
-    classifier = load_model_state(norm_method, model, wd, lr)
+    model = load_model(model_load_name, norm_method)
+    classifier = load_model_state(model_load_name, norm_method, model, wd, lr, load_seed)
     clean_acc = get_clean_accuracy(classifier)
     X_adv, adv_accuracy = create_manifold_stimuli(classifier, manifold_type, P, M, eps, eps_step_factor, max_iter, random)
-    features_dict = extract_representations(model_name, model, norm_method, X_adv)
-    df = run_mftma(features_dict, P, M, N, seed, model_name, manifold_type, norm_method, clean_acc, adv_accuracy, eps, max_iter, random)
-    save_results(df, results_dir, file_name)
+    features_dict = extract_representations(model_save_name, model, norm_method, X_adv)
+    df = run_mftma(features_dict, P, M, N, seed, model_load_name, manifold_type, norm_method, clean_acc, adv_accuracy, eps, eps_step_factor, max_iter, random)
+
+    file_name = f'model_{model_save_name}-manifold_{manifold_type}-norm_{norm_method}-eps_{eps}-iter_{max_iter}-random_{random}-seed_{seed}.csv'
+    save_results(df, results_dir, model_save_name, file_name)
 
 
 def main():
-    global device
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
     print("we are running!", flush=True)
     
-    norm_method = ['nn', 'bn', 'in', 'gn', 'ln', 'lrnb', 'lrnc', 'lrns']
+    # parameters for running analysis
     seed = [1]
-    eps = [1.0, 2.0, 4.0, 6.0, 8.0]
+    # eps = [1.0, 2.0, 4.0, 6.0, 8.0]
+    # eps = [0.01, 0.03, 0.05, 0.07, 0.1, 0.15, 0.2]
+    eps = [0.1]
     base_save_folder = 'results'
     attack_mode = 'inf'  # inf, 1, 2, None, default=inf
     manifold_type = 'exemplar' # 'class' for traditional label based manifolds, 'exemplar' for individual exemplar manifolds
@@ -199,21 +219,25 @@ def main():
     eps_step_factor = 1
     random = False # adversarial perturbation if false, random perturbation if true
     
-    # loading the weights of the trained model
+    # parameters for loading the weights of the trained model
+    # norm_method = ['nn', 'bn', 'in', 'gn', 'ln', 'lrnb', 'lrnc', 'lrns']
+    norm_method = ['bn']
     wd = 0.005
     lr = 0.01
     run_number = 2
     
-    # model and dataset details
-    model_name = 'lenet'
+    # parameters pertaining to model and dataset details
+    model_save_name = 'lenet'
+    model_load_name = 'convnet4'
     dataset = 'mnist'
 
     cluster = 'flatiron'
+    resources = 'cpu'  # cpu or gpu
 
     #########################################################################################
     # processing paths
-    log_folder = os.path.join('..', 'slurm_jobs', cluster, 'train_and_eval', 'logs/%j')
-    base_save_folder = os.path.join('..', base_save_folder, 'vgg')
+    log_folder = os.path.join('../../..', 'slurm_jobs', cluster, 'mftma', f'{manifold_type}-manifolds', 'logs/%j')
+    # base_save_folder = os.path.join('..', base_save_folder, 'vgg')
 
     # establish executor for submitit
     ex = submitit.AutoExecutor(folder=log_folder)
@@ -224,17 +248,28 @@ def main():
         print(f"!!! Slurm executable `srun` not found. Will execute jobs on '{ex.cluster}'")
 
     # slurm parameters
-    ex.update_parameters(
-        slurm_job_name='vgg',
-        nodes=1,
-        slurm_partition="gpu", 
-        slurm_gpus_per_task=1, 
-        # slurm_constraint='a100', 
-        slurm_constraint='v100-32gb',
-        cpus_per_task=12,
-        mem_gb=8,  # 32gb for train mode, 8gb for eval mode
-        timeout_min=60
-    )
+    if resources == 'cpu':
+        # cpu usage
+        ex.update_parameters(
+            slurm_job_name='mftma',
+            nodes=1,
+            slurm_partition="ccn", 
+            cpus_per_task=4,
+            mem_gb=8,  # 32gb for train mode, 8gb for eval mode
+            timeout_min=60
+        )
+    elif resources == 'gpu':
+        # gpu usage
+        ex.update_parameters(
+            slurm_job_name='mftma_gpu',
+            nodes=1,
+            slurm_partition='gpu',
+            slurm_gpus_per_task=1,
+            slurm_constraint='a100',
+            cpus_per_task=4,
+            mem_gb=8,
+            timeout_min=60
+        )
 
     # submit the jobs!
     jobs = []
@@ -242,18 +277,25 @@ def main():
         # iterate through all the parameters
         for s in seed:
             for n in norm_method:
-                job = ex.submit(
-                    run_analysis, 
-                    model_name, 
-                    manifold_type, 
-                    n, 
-                    eps, max_iter, eps_step_factor, attack_mode,
-                    random, 
-                    s, P, M, N, 
-                    wd, lr, run_number
-                )
-                jobs.append(job)
+                for e in eps:
+                    job = ex.submit(
+                        run_analysis, 
+                        model_load_name, model_save_name, 
+                        manifold_type, 
+                        n, 
+                        e, max_iter, eps_step_factor, attack_mode,
+                        random, 
+                        s, P, M, N, 
+                        wd, lr, run_number
+                    )
+                    jobs.append(job)
     print('all jobs submitted!')
+
+    idx = 0
+    for s in seed:
+        for n in norm_method:
+            print(f'Job {jobs[idx].job_id} === seed: {s}, norm method: {n}')
+            idx += 1
 
 
 if __name__ == "__main__":

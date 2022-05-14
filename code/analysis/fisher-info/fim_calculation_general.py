@@ -203,24 +203,24 @@ plot_metrics('npr', 'normalized PR of eigenvalues', sharey)
 
 # %% calculate the change in sensitivity, relative to no norm
 # load the saved metric
-metric_seed = 1
-metric_img_num = 2
+metric_seed = 3
+metric_img_num = 1
 
 metric_load_dir = os.path.join('.', 'analysis', 'fisher-info', 'saved-metrics', model_name)
 metric_load_file = f'metrics-seed={metric_seed}-img_num={metric_img_num}.pkl'
 file = open(os.path.join(metric_load_dir, metric_load_file), 'rb')
-loaded_metric = pickle.load(file)
+metrics = loaded_metric = pickle.load(file)
 
 # calculate change in chosen metric, relative to no norm
-def calc_relative_metric_change(metric, model_name, suptitle, type='subtract'):
+def calc_relative_metric_change(metric, model_name, suptitle, type='subtraction'):
     if model_name[:7] == 'convnet':
         delta_layer1 = {}
         delta_layer2 = {}
         for nm in norm_method:
-            if type=='subtract':
+            if type=='subtraction':
                 delta_layer1[nm] = loaded_metric[nm][1][metric] - loaded_metric[nm][0][metric]
                 delta_layer2[nm] = loaded_metric[nm][4][metric] - loaded_metric[nm][3][metric]
-            elif type=='divide':
+            elif type=='division':
                 delta_layer1[nm] = loaded_metric[nm][1][metric] / loaded_metric[nm][0][metric]
                 delta_layer2[nm] = loaded_metric[nm][4][metric] / loaded_metric[nm][3][metric]
 
@@ -233,11 +233,16 @@ def calc_relative_metric_change(metric, model_name, suptitle, type='subtract'):
         ax[0].set(title='first normalization layer')
         # ax[1].set(title='second normalization layer', ylim=(-1000, 4000))
         ax[1].set(title='second normalization layer')
-        fig.suptitle(f'$\Delta$ in {suptitle}, relative to no norm')
+        fig.suptitle(f'$\Delta$ in {suptitle} via {type}')
         fig.show()
 
-calc_relative_metric_change('ev_sum', model_name, 'sum of eigenvalues')
-calc_relative_metric_change('max_ev', model_name, 'maximum eigenvalue')
-calc_relative_metric_change('ev_logdet', model_name, 'log determinant')
+# comparisons = ['subtraction', 'division']
+comparisons = ['division']
+for c in comparisons:
+    calc_relative_metric_change('ev_sum', model_name, 'sum of eigenvalues', c)
+    calc_relative_metric_change('max_ev', model_name, 'maximum eigenvalue', c)
+    calc_relative_metric_change('ev_logdet', model_name, 'log determinant', c)
+    calc_relative_metric_change('pr', model_name, 'pr', c)
+    calc_relative_metric_change('npr', model_name, 'npr', c)
 # %%
 

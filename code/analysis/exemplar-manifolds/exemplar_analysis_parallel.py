@@ -10,6 +10,7 @@ import numpy as np
 from art.utils import load_mnist
 from art.estimators.classification import PyTorchClassifier
 import argparse
+import submitit
 
 from helpers import accuracy, perturb_stimuli, construct_manifold_stimuli, Hook, model_layer_map, MFTMA_analyze_activations
 
@@ -31,20 +32,21 @@ def load_dataset():
 
 
 # define the MNIST model
-def load_model(norm_method):
-    simple_channels = 16
-    complex_channels = 16
-    ksize = 5
+def load_model(model_name, norm_method):
+    if model_name == 'lenet':
+        simple_channels = 16
+        complex_channels = 16
+        ksize = 5
 
-    conv_1 = nn.Conv2d(in_channels=1, out_channels=simple_channels+complex_channels, kernel_size=ksize, stride=2, padding=ksize//2)
-    model = Net(conv_1, simple_channels + complex_channels, normalize=norm_method)
+        conv_1 = nn.Conv2d(in_channels=1, out_channels=simple_channels+complex_channels, kernel_size=ksize, stride=2, padding=ksize//2)
+        model = Net(conv_1, simple_channels + complex_channels, normalize=norm_method)
     return model
 
 
 # load model state and dataset
-def load_model_state(norm_method, model):
+def load_model_state(norm_method, model, wd, lr, model_seed=1, run_number=1):
     # load the model
-    model_path = os.path.abspath(os.path.join('..', '..', 'results', 'mnist_regularize', 'trained_models', 'standard', f'standard-lr_0.01-wd_0.0005-seed_17-normalize_{norm_method}.pth'))
+    model_path = os.path.abspath(os.path.join('..', '..', 'results', 'mnist_regularize', 'trained_models', 'standard', f'standard-lr_{lr}-wd_{wd}-seed_{model_seed}-normalize_{norm_method}.pth'))
     model.load_state_dict(torch.load(model_path, map_location=device))
 
     lr = 0.01
@@ -163,65 +165,96 @@ def save_results(df, results_dir, file_name):
     print(f'results saved at: {results_dir}')
 
 
-if __name__ == "__main__":
-    print("we are running!", flush=True)
-    parser = argparse.ArgumentParser(description='Run MFTMA analysis on trained MNIST/CIFAR norm models')
-    parser.add_argument('--norm_method', help='The normalization method')
-    parser.add_argument('--seed', help='set the seed of the run.')
-    parser.add_argument('--eps', help='set the eps level')
-    parser.add_argument('--num_images', help='number of images to use from test dataset')
-    parser.add_argument('--save_folder', help='The folder to save the results of the analysis')
-    args = parser.parse_args()
+##############################################################################################################
 
-    assert args.norm_method in ['bn', 'in', 'ln', 'gn', 'nn', 'lrnc', 'lrns', 'lrnb'], 'Must input a valid norm method.'
-    norm_method = args.norm_method
 
-    if args.seed:
-        seed = int(args.seed)
-    else:
-        seed = 0
-
-    # manifold parameters
-    manifold_type = 'exemplar' # 'class' for traditional label based manifolds, 'exemplar' for individual exemplar manifolds
-    P = 50 # number of manifolds
-    M = 50 # number of examples per manifold
-    N = 2000 # maximum number of features to use
-
-    # determine the type of adversarial examples to use for constructing the manifolds
-    if args.eps:
-        eps = float(args.eps)
-    else:
-        eps = 0
-    max_iter = 1
-    eps_step_factor = 1
-    eps_step = eps / eps_step_factor
-    random = False # adversarial perturbation if false, random perturbation if true
+def run_analysis(model_name, manifold_type, norm_method, eps, max_iter, eps_step_factor, attack_mode, random, seed, P, M, N, wd, lr, results_dir='results'):
+    file_name = f'model_{model_name}-manifold_{manifold_type}-norm_{norm_method}-eps_{eps}-iter_{max_iter}-random_{random}-seed_{seed}.csv'
     
-    if args.num_images:
-        num_images = args.num_images
-    else:
-        num_images = None
-
-    # model and dataset details
-    model_name = 'MNIST_ConvNet'
-    dataset = 'MNIST'
-
-    # where to save results and how to name the files
-    if args.save_folder:
-        results_dir = args.save_folder
-    else:
-        results_dir = 'results'
-    file_name = f'model_{model_name}-manifold_{manifold_type}-norm_{norm_method}-eps_{args.eps}-iter_{max_iter}-random_{random}-seed_{seed}.csv'
-
-    global device
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # device = "cpu"
-
-    # x_test, y_test, _, _ = load_dataset()
-    model = load_model(norm_method)
-    classifier = load_model_state(norm_method, model)
+    model = load_model(model_name, norm_method)
+    classifier = load_model_state(norm_method, model, wd, lr)
     clean_acc = get_clean_accuracy(classifier)
     X_adv, adv_accuracy = create_manifold_stimuli(classifier, manifold_type, P, M, eps, eps_step_factor, max_iter, random)
     features_dict = extract_representations(model_name, model, norm_method, X_adv)
     df = run_mftma(features_dict, P, M, N, seed, model_name, manifold_type, norm_method, clean_acc, adv_accuracy, eps, max_iter, random)
     save_results(df, results_dir, file_name)
+
+
+def main():
+    global device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    print("we are running!", flush=True)
+    
+    norm_method = ['nn', 'bn', 'in', 'gn', 'ln', 'lrnb', 'lrnc', 'lrns']
+    seed = [1]
+    eps = [1.0, 2.0, 4.0, 6.0, 8.0]
+    base_save_folder = 'results'
+    attack_mode = 'inf'  # inf, 1, 2, None, default=inf
+    manifold_type = 'exemplar' # 'class' for traditional label based manifolds, 'exemplar' for individual exemplar manifolds
+    P = 50 # number of manifolds, i.e. the number of images
+    M = 50 # number of examples per manifold, i.e. the number of images that lie in an epsilon ball around the image
+    N = 2000 # maximum number of features to use
+    max_iter = 1
+    eps_step_factor = 1
+    random = False # adversarial perturbation if false, random perturbation if true
+    
+    # loading the weights of the trained model
+    wd = 0.005
+    lr = 0.01
+    run_number = 2
+    
+    # model and dataset details
+    model_name = 'lenet'
+    dataset = 'mnist'
+
+    cluster = 'flatiron'
+
+    #########################################################################################
+    # processing paths
+    log_folder = os.path.join('..', 'slurm_jobs', cluster, 'train_and_eval', 'logs/%j')
+    base_save_folder = os.path.join('..', base_save_folder, 'vgg')
+
+    # establish executor for submitit
+    ex = submitit.AutoExecutor(folder=log_folder)
+
+    if ex.cluster == 'slurm':
+        print('submitit executor will schedule jobs on slurm!')
+    else:
+        print(f"!!! Slurm executable `srun` not found. Will execute jobs on '{ex.cluster}'")
+
+    # slurm parameters
+    ex.update_parameters(
+        slurm_job_name='vgg',
+        nodes=1,
+        slurm_partition="gpu", 
+        slurm_gpus_per_task=1, 
+        # slurm_constraint='a100', 
+        slurm_constraint='v100-32gb',
+        cpus_per_task=12,
+        mem_gb=8,  # 32gb for train mode, 8gb for eval mode
+        timeout_min=60
+    )
+
+    # submit the jobs!
+    jobs = []
+    with ex.batch():
+        # iterate through all the parameters
+        for s in seed:
+            for n in norm_method:
+                job = ex.submit(
+                    run_analysis, 
+                    model_name, 
+                    manifold_type, 
+                    n, 
+                    eps, max_iter, eps_step_factor, attack_mode,
+                    random, 
+                    s, P, M, N, 
+                    wd, lr, run_number
+                )
+                jobs.append(job)
+    print('all jobs submitted!')
+
+
+if __name__ == "__main__":
+    main()

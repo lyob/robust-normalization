@@ -1,45 +1,76 @@
 #%% imports
+%reload_ext autoreload
+%autoreload 2
 import os
 import pandas as pd
 from glob import glob
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+from art.utils import load_mnist
 
 
 #%% import data
-results_dir = os.path.join('..', 'code', 'analysis', 'exemplar-manifolds', 'results')
-dataset_name = 'MNIST'
-## unused parameters
-# model_name = 'ConvNet'
-# iter_val = 1
-# random = False
-# seed = 0
+model_name = 'lenet'
+dataset_name = 'mnist'
 
-files = [y for x in os.walk(results_dir) for y in glob(os.path.join(x[0], f'*{dataset_name}*'))]
-# print(files)
-df = pd.concat([pd.read_csv(f) for f in files])
-print(df['adv_accuracy'])
+results_dir = os.path.join('..', 'code', 'analysis', 'exemplar-manifolds', 'results', model_name)
+## unused parameters
+# iter_val = 1
+manifold_type = 'exemplar'
+norm_method = 'nn'
+eps = 0.1
+iter = 1
+random = False
+seed = 0
+img_idx = [0, 1,2,3]
+img_idx = list(range(50))
+num_manifolds = len(img_idx)
+plot_img_idx = 6
+NT=100
+seeded=True
+
+# read many files
+# files = [y for x in os.walk(results_dir) for y in glob(os.path.join(x[0], f'*{model_name}*'))]
+# df = pd.concat([pd.read_csv(f) for f in files])
+
+# read one file
+if len(img_idx) < 10:
+    file_name = f'model={model_name}-manifold={manifold_type}-norm={norm_method}-eps={eps}-iter={iter}-random={random}-seed={seed}-num_manifolds={num_manifolds}-img_idx={img_idx}-NT={NT}-seeded={seeded}.csv'
+else:
+    file_name = f'model={model_name}-manifold={manifold_type}-norm={norm_method}-eps={eps}-iter={iter}-random={random}-seed={seed}-num_manifolds={num_manifolds}-range={len(img_idx)}-NT={NT}-seeded={seeded}.csv'
+    
+df = pd.read_csv(os.path.join(results_dir, file_name))
+print(df['label'])
 
 
 # %% define measures to print
-measures = ['mean_cap', 'dim', 'rad', 'center_corr', 'EVD90', 'PR']
-manifold_type = 'exemplar'
+if type(img_idx) == list:
+    measures = ['mean_cap', 'cap', 'dim', 'rad', 'EVD90', 'PR']
+else:
+    measures = ['mean_cap', 'dim', 'rad', 'center_corr', 'EVD90', 'PR']
 # eps_val = '6.0'
 # eps = float(eps_val)/255
-eps = 0.07
+# eps = 0.07
+eps = 0.1
+
+(_, _), (_, y_test), _, _ = load_mnist()
+ylabel = np.argmax(y_test[plot_img_idx])
+
 
 #%% plot the data of different norms for a single epsilon value, or a single norm at different epsilon values
-def plot_layerwise(df, measures, manifold_type, mode, eps=None, norm_method=None):
-    fig, axes = plt.subplots(nrows=len(measures), ncols=1, figsize=(12,4*len(measures)))
+def plot_layerwise(df, measures, manifold_type, mode, eps=None, norm_method=None, title=None):
+    fig, axes = plt.subplots(nrows=len(measures), ncols=1, figsize=(8,2*len(measures)), sharex='all')
 
     if mode=='eps':
         assert eps!=None, 'Mode is `eps`, specify the value of `eps`.'
         for ax, measure in zip(axes, measures):
             # filter the df for data of interest
             data = df[
-                (df['eps'].apply(lambda x : np.isclose(x, eps)))&
-                (df['manifold_type']==manifold_type)
+                (df['eps'].apply(lambda x : np.isclose(x, eps)))
+                &(df['manifold_type']==manifold_type)
+                &(df['label']==float(ylabel))
+                # &(df['layer']!='0.pixels')
             ]
                         
             # average over seeds / layers / models
@@ -55,7 +86,11 @@ def plot_layerwise(df, measures, manifold_type, mode, eps=None, norm_method=None
             )
             sns.despine()
         # axes[0].set(title=f'eps = {int(eps*255)}/255 = {eps:2f}')
-        axes[0].set(title=f'eps = {eps:.2g}')
+        if title==None:
+            axes[0].set(title=f'eps = {eps:.2g}')
+        else:
+            axes[0].set(title=f'eps = {eps:.2g}, {title}')
+        fig.tight_layout()
         plt.show()
 
     elif mode=='norm_method':
@@ -82,12 +117,19 @@ def plot_layerwise(df, measures, manifold_type, mode, eps=None, norm_method=None
             handles, labels = ax.get_legend_handles_labels()
             new_labels = [f'{float(label):.2g}' for label in labels]
             ax.legend(handles, new_labels)
-        axes[0].set(title=f'norm method = {norm_method}')
+        if title==None:
+            axes[0].set(title=f'norm method = {norm_method}')
+        else:
+            axes[0].set(title=f'norm method = {norm_method}, {title}')
+            
         plt.show()
 
 #%%
-eps = 6/255
-plot_layerwise(df, measures, manifold_type, mode='eps', eps=eps)
+eps = 0.1
+if len(img_idx) < 10:
+    plot_layerwise(df, measures, manifold_type, mode='eps', eps=eps, title=f'num_manifolds = {num_manifolds} {img_idx}, img_idx = {plot_img_idx}')
+else:
+    plot_layerwise(df, measures, manifold_type, mode='eps', eps=eps, title=f'num_manifolds = {num_manifolds} (range: 50), img_idx = {plot_img_idx}')
 
 # %% plot the data of a single norm at different epsilon values
 plot_layerwise(df, measures, manifold_type, mode='norm_method', norm_method='nn')

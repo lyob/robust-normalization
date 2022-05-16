@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
+import pickle
 
 from art.utils import load_mnist
 from art.estimators.classification import PyTorchClassifier
@@ -17,10 +18,6 @@ os.chdir('/mnt/ceph/users/blyo1/syLab/robust-normalization/code/analysis/exempla
 sys.path.append('/mnt/ceph/users/blyo1/syLab/robust-normalization/code/analysis/exemplar-manifolds')
 from helpers import accuracy, perturb_stimuli, construct_manifold_stimuli, Hook, model_layer_map, MFTMA_analyze_activations
 
-# os.chdir('/mnt/ceph/users/blyo1/syLab/robust-normalization/code')
-# sys.path.append('/mnt/ceph/users/blyo1/syLab/robust-normalization/code')
-# print(sys.path)
-# print(os.path.abspath('.'))
 from mnist_layer_norm import Net_both
 
 def seed_everything(seed):
@@ -33,7 +30,7 @@ def seed_everything(seed):
 
 # Load train and test dataset, and show an example. 
 def load_dataset():
-    (x_train, y_train), (x_test, y_test), min_pixel_value, max_pixel_value = load_mnist()
+    (_, _), (x_test, y_test), min_pixel_value, max_pixel_value = load_mnist()
     # plt.imshow(x_train[7])
 
     # x_train = np.swapaxes(x_train, 1, 3).astype(np.float32)
@@ -57,10 +54,10 @@ def load_model(model_name, norm_method):
 
 
 # load model state and dataset
-def load_model_state(model_load_name, norm_method, model, wd, lr, load_seed=1, run_number=1):
+def load_model_state(model_load_name, norm_method, model, wd, lr, model_load_seed=1, run_number=1):
     # load the model
     load_dir = os.path.join('../../..')
-    model_path = os.path.join(load_dir, 'results', model_load_name, 'trained_models', f'learned_conv_frontend-norm_both', f'{model_load_name}-lr_{lr}-wd_{wd}-seed_{load_seed}-normalize_{norm_method}.pth')
+    model_path = os.path.join(load_dir, 'results', model_load_name, 'trained_models', f'learned_conv_frontend-norm_both', f'{model_load_name}-lr_{lr}-wd_{wd}-seed_{model_load_seed}-normalize_{norm_method}.pth')
     model.load_state_dict(torch.load(model_path, map_location=device))
 
     criterion = nn.CrossEntropyLoss()
@@ -96,23 +93,43 @@ def get_clean_accuracy(classifier, **kwargs):
 
 
 # generate adversarial manifold stimuli
-def create_manifold_stimuli(classifier, manifold_type, P, M, eps, eps_step_factor, max_iter, random):
+def create_manifold_stimuli(generate_new: bool, classifier, manifold_type, P, M, N, img_idx, eps, eps_step_factor, max_iter, random, seed, run_number: int):
     print('constructing manifold stimuli...')
 
-    x_test, y_test, _, _ = load_dataset()
-    X, Y = construct_manifold_stimuli(x_test, y_test, manifold_type, P=P, M=M)
-    if (eps == 0):
-        X_adv = X
+    if generate_new:
+        x_test, y_test, _, _ = load_dataset()
+        X, Y = construct_manifold_stimuli(x_test, y_test, manifold_type, P=P, M=M, img_choice=img_idx)
+        seed_everything(seed)
+        if (eps == 0):
+            X_adv = X
+        else:
+            X_adv = perturb_stimuli(
+                X, 
+                Y, 
+                classifier, 
+                eps=eps, 
+                eps_step_factor=eps_step_factor, 
+                max_iter=max_iter, 
+                random=random 
+            )
+        data_to_save = {'X_adv': X_adv, 'X': X, 'Y': Y, 'img_idx': img_idx}
+        save_dir = 'adversarial_dataset'
+        if len(img_idx) < 10:
+            save_name = f'adversarial_dataset-P={P}-M={M}-N={N}-img_idx={img_idx}-run={run_number}.pkl'
+        else:
+            save_name = f'adversarial_dataset-P={P}-M={M}-N={N}-range={len(img_idx)}-run={run_number}.pkl'
+            
+        save_file = open(os.path.join(save_dir, save_name), 'wb')
+        pickle.dump(data_to_save, save_file)
+        save_file.close()
     else:
-        X_adv = perturb_stimuli(
-            X, 
-            Y, 
-            classifier, 
-            eps=eps, 
-            eps_step_factor=eps_step_factor, 
-            max_iter=max_iter, 
-            random=random 
-        )
+        load_dir = os.path.join('adversarial_dataset')
+        load_file = f'adversarial_dataset-P={P}-M={M}-N={N}.pkl'
+        file = open(os.path.join(load_dir, load_file), 'rb')
+        loaded_data = pickle.load(file)
+        
+        X_adv = loaded_data['X_adv']
+        Y = loaded_data['Y']
 
     print(f'stimuli shape: {X_adv.shape}')
     print(f'X_adv type: {type(X_adv)}')
@@ -120,8 +137,11 @@ def create_manifold_stimuli(classifier, manifold_type, P, M, eps, eps_step_facto
     # get adversarial accuracy
     adv_accuracy = accuracy(classifier.predict(X_adv), Y)
     print(f"Accuracy on adversarial test examples: {adv_accuracy * 100}")
-    return X_adv, adv_accuracy
-
+    
+    Y_adv = np.argmax(Y, axis=1)
+    Y_adv = Y_adv[[i*M for i in range(len(img_idx))]]
+    
+    return X_adv, Y_adv, adv_accuracy
 
 # apply hooks to the model, to extract intermediate representations
 def extract_representations(model_name, model, normalize, X_adv):
@@ -149,10 +169,11 @@ def extract_representations(model_name, model, normalize, X_adv):
 
 
 # run MFTMA analysis on all features in the features_dict -- this can take a few minutes!
-def run_mftma(features_dict, P, M, N, seed, model_name, manifold_type, norm_method, clean_accuracy, adv_accuracy, eps, eps_step_factor, max_iter, random):
+def run_mftma(features_dict, Y_adv, P, M, N, NT, seeded, seed, model_name, manifold_type, norm_method, clean_accuracy, adv_accuracy, eps, eps_step_factor, max_iter, random):
     print('running mftma...')
 
-    df = MFTMA_analyze_activations(features_dict, P, M, N=N, seed=seed)
+    seed_everything(seed)
+    df = MFTMA_analyze_activations(features_dict, P, M, N, NT, seeded, seed, labels=Y_adv)
 
     eps_step = eps/eps_step_factor
 
@@ -182,54 +203,74 @@ def save_results(df, results_dir, model_save_name, file_name):
     print(f'results saved at: {save_dir}')
 
 
-##############################################################################################################
-
-
-def run_analysis(model_load_name, model_save_name, manifold_type, norm_method, eps, max_iter, eps_step_factor, attack_mode, random, seed, P, M, N, wd, lr, load_seed, results_dir='results'):
+#%% ANALYSIS
+def run_analysis(
+                    model_load_name, model_save_name, generate_new, 
+                    norm_method, wd, lr, model_load_seed, 
+                    manifold_type, eps, max_iter, eps_step_factor, attack_mode, random, img_idx, dataset_run_number,
+                    P, M, N, NT, seed, seeded_analysis, analysis_run_number, 
+                    results_dir='results'
+                ):
+                        
     seed_everything(seed)
     global device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     model = load_model(model_load_name, norm_method)
-    classifier = load_model_state(model_load_name, norm_method, model, wd, lr, load_seed)
+    classifier = load_model_state(model_load_name, norm_method, model, wd, lr, model_load_seed)
     clean_acc = get_clean_accuracy(classifier)
-    X_adv, adv_accuracy = create_manifold_stimuli(classifier, manifold_type, P, M, eps, eps_step_factor, max_iter, random)
-    features_dict = extract_representations(model_save_name, model, norm_method, X_adv)
-    df = run_mftma(features_dict, P, M, N, seed, model_load_name, manifold_type, norm_method, clean_acc, adv_accuracy, eps, eps_step_factor, max_iter, random)
+    generate_new = True
+    X_adv, Y_adv, adv_accuracy = create_manifold_stimuli(generate_new, classifier, manifold_type, P, M, N, img_idx, eps, eps_step_factor, max_iter, random, seed, dataset_run_number)
+    
+    features_dict = extract_representations(model_save_name, model, norm_method, X_adv, Y_adv)
+    df = run_mftma(features_dict, Y_adv, P, M, N, NT, seeded_analysis, seed, model_load_name, manifold_type, norm_method, clean_acc, adv_accuracy, eps, eps_step_factor, max_iter, random)
 
-    file_name = f'model_{model_save_name}-manifold_{manifold_type}-norm_{norm_method}-eps_{eps}-iter_{max_iter}-random_{random}-seed_{seed}.csv'
+    if len(img_idx) < 10:
+        file_name = f'model={model_save_name}-manifold={manifold_type}-norm={norm_method}-eps={eps}-iter={max_iter}-random={random}-seed={seed}-num_manifolds={P}-img_idx={img_idx}-NT={NT}-seeded={seeded_analysis}-run_number={analysis_run_number}.csv'
+    else:
+        file_name = f'model={model_save_name}-manifold={manifold_type}-norm={norm_method}-eps={eps}-iter={max_iter}-random={random}-seed={seed}-num_manifolds={P}-range={len(img_idx)}-NT={NT}-seeded={seeded_analysis}-run_number={analysis_run_number}.csv'
     save_results(df, results_dir, model_save_name, file_name)
 
 
+#%% MAIN
 def main():
     print("we are running!", flush=True)
     
-    # parameters for running analysis
-    seed = [1]
-    # eps = [1.0, 2.0, 4.0, 6.0, 8.0]
-    # eps = [0.01, 0.03, 0.05, 0.07, 0.1, 0.15, 0.2]
-    eps = [0.1]
-    base_save_folder = 'results'
-    attack_mode = 'inf'  # inf, 1, 2, None, default=inf
+    ############################################################################################
+    # parameters pertaining to model and dataset details
+    model_load_name = 'convnet4'
+    model_save_name = 'lenet'
+    generate_new = True
+    dataset = 'mnist'
+    
+    # parameters for loading the weights of the trained model
+    norm_method = ['bn']
+    # norm_method = ['nn', 'bn', 'in', 'gn', 'ln', 'lrnb', 'lrnc', 'lrns']
+    wd = 0.005
+    lr = 0.01
+    model_load_seed = [1]
+    
+    # parameter for creating (exemplar) manifold
     manifold_type = 'exemplar' # 'class' for traditional label based manifolds, 'exemplar' for individual exemplar manifolds
+    eps = [0.1]
+    max_iter = 1
+    eps_step_factor = 1
+    attack_mode = 'inf'  # inf, 1, 2, None, default=inf
+    random = False # adversarial perturbation if false, random perturbation if true
+    img_idx = [0, 1]  # select which images from the test dataset to condition on, can be list of ints or `False`
+    dataset_run_number = 1
+    
+    # parameters for running analysis
     P = 50 # number of manifolds, i.e. the number of images
     M = 50 # number of examples per manifold, i.e. the number of images that lie in an epsilon ball around the image
     N = 2000 # maximum number of features to use
-    max_iter = 1
-    eps_step_factor = 1
-    random = False # adversarial perturbation if false, random perturbation if true
+    NT = 100  # number of sampled directions
+    seed = 0
+    seeded_analysis = True
+    analysis_run_number = [1]
     
-    # parameters for loading the weights of the trained model
-    # norm_method = ['nn', 'bn', 'in', 'gn', 'ln', 'lrnb', 'lrnc', 'lrns']
-    norm_method = ['bn']
-    wd = 0.005
-    lr = 0.01
-    run_number = 2
+    base_save_folder = 'results'
     
-    # parameters pertaining to model and dataset details
-    model_save_name = 'lenet'
-    model_load_name = 'convnet4'
-    dataset = 'mnist'
 
     cluster = 'flatiron'
     resources = 'cpu'  # cpu or gpu
@@ -275,24 +316,23 @@ def main():
     jobs = []
     with ex.batch():
         # iterate through all the parameters
-        for s in seed:
+        for s in model_load_seed:
             for n in norm_method:
                 for e in eps:
-                    job = ex.submit(
-                        run_analysis, 
-                        model_load_name, model_save_name, 
-                        manifold_type, 
-                        n, 
-                        e, max_iter, eps_step_factor, attack_mode,
-                        random, 
-                        s, P, M, N, 
-                        wd, lr, run_number
-                    )
-                    jobs.append(job)
+                    for r in analysis_run_number:
+                        job = ex.submit(
+                            run_analysis, 
+                            model_load_name, model_save_name, generate_new,
+                            n, wd, lr, s,
+                            manifold_type, e, max_iter, eps_step_factor, attack_mode, random, img_idx, dataset_run_number,
+                            P, M, N, NT, seed, seeded_analysis, r,
+                            base_save_folder
+                        )
+                        jobs.append(job)
     print('all jobs submitted!')
 
     idx = 0
-    for s in seed:
+    for s in model_load_seed:
         for n in norm_method:
             print(f'Job {jobs[idx].job_id} === seed: {s}, norm method: {n}')
             idx += 1

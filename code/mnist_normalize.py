@@ -9,6 +9,7 @@ import os
 import pickle
 import h5py as h5
 import sys
+import random
 sys.path.insert(0,'..')
 
 from art.attacks.evasion import ProjectedGradientDescent, FastGradientMethod
@@ -23,12 +24,11 @@ os.chdir(folder_path)
     
 def seed_everything(seed):
     #initiate seed to try to make the result reproducible 
-    os.environ['PYTHONHASHSEED'] = str(seed)
-    np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
-    #torch.backends.cudnn.deterministic = True
-    #torch.backends.cudnn.benchmark = False
+    np.random.seed(seed)
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
     
 def calculate_norm(model):
     norm_dict = {}

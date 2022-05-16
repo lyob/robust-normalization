@@ -19,13 +19,13 @@ print(os.path.abspath('.'))
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 parameters = {
-    'model_name': 'convnet4',
+    'model_name': 'convnet3',
     'frontend': 'learned_conv',  # learned_conv or vone_filterbank or frozen_conv
     'norm_position': 'both',
     'seed': 17,
     'norm_method': 'nn',
     'lr': 0.01,
-    'wd': 0.005
+    'wd': 0.0005
 }
 
 parameters = parameters

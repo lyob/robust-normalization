@@ -1,4 +1,6 @@
 #%%
+%reload_ext autoreload
+%autoreload 2
 import numpy as np
 import torch
 import torch.nn as nn
@@ -9,7 +11,8 @@ import os
 from fim_utils import Eigendistortion, NthLayer
 from art.utils import load_mnist
 
-code_root = os.path.abspath('/mnt/ceph/users/blyo1/syLab/robust-normalization/code/')
+# code_root = os.path.abspath('/mnt/ceph/users/blyo1/syLab/robust-normalization/code/')
+code_root = os.path.abspath('../..')
 os.chdir(code_root)
 print('the root directory is', os.path.abspath('.'))
 
@@ -67,6 +70,7 @@ def calc_metrics(eig_vals, inverse=False):
 # calculate the FIM of the model wrt the input image, and return a measure of model sensitivity
 def calc_model_fim(model_name, norm_method, model, input_img, layers, layer_names):    
     metrics = {}
+    eigvecs = {}
     fig, ax = plt.subplots(1, 1, sharey='all')
     for idx, l in enumerate(layers):
         print(f'layer {l}')
@@ -84,8 +88,9 @@ def calc_model_fim(model_name, norm_method, model, input_img, layers, layer_name
         print(f'max eigenvalue is {max_eigval}')
 
         # resize the eigvecs to a matrix shape
-        eigvec = eigvec.view(eigvec.size()[0], -1)    
-
+        eigvec = eigvec.view(eigvec.size()[0], -1)
+        eigvecs[l] = eigvec
+        
         # plot the eigendistortions
         ax.plot(eigval, '.', label=f'layer {l}: {layer_names[l]}')
         model_name = '3 layer LeNet' if model_name[:7]=='convnet' else model_name
@@ -111,7 +116,7 @@ def calc_model_fim(model_name, norm_method, model, input_img, layers, layer_name
 
 
         metrics[l] = metrics_per_layer
-    return metrics
+    return metrics, eigvecs
 
 #################################################################################################################################
 #################################################################################################################################
@@ -125,13 +130,13 @@ lenet_parameters = {
     'frontend' : 'learned_conv',  # learned_conv or vone_filterbank or frozen_conv
     'norm_position' : 'both',
     'dataset': 'mnist',
-    'seed' : 3,
+    'seed' : 1,
     'norm_method' : ['ln', 'in', 'bn', 'gn', 'nn', 'lrnb', 'lrnc', 'lrns'],
     # 'norm_method' : ['nn'],
     'lr' : 0.01,
     'wd' : 0.005,
-    'layers' : [0,1,2,3,4,5],
-    'layer_names': ['conv1', 'nm1', 'relu1', 'conv2', 'nm2', 'relu2']
+    'layers' : [0,1,2,3,4,5,6],
+    'layer_names': ['conv1', 'nm1', 'relu1', 'conv2', 'nm2', 'relu2', 'fc1']
 }
 
 parameters = lenet_parameters
@@ -148,7 +153,7 @@ layers = parameters.get('layers')
 layer_names = parameters.get('layer_names')
 
 #%% select and display input image
-img_num = 1
+img_num = 3
 input_img = select_input_img(dataset, img_num)
 
 #%% run the analysis
@@ -192,7 +197,7 @@ def plot_metrics(metric, title, sharey='all'):
             barlist[0].set_color(colorlist[nm])
     fig.suptitle(title)
     fig.tight_layout()
-    fig.show()
+    # fig.show()
 
 sharey='all'  # 'all' or 'none'
 plot_metrics('ev_sum', 'sum of eigenvalues', sharey)
@@ -203,11 +208,11 @@ plot_metrics('npr', 'normalized PR of eigenvalues', sharey)
 
 # %% calculate the change in sensitivity, relative to no norm
 # load the saved metric
-metric_seed = 3
-metric_img_num = 1
+metric_seed = 1
+metric_img_idx = 3
 
 metric_load_dir = os.path.join('.', 'analysis', 'fisher-info', 'saved-metrics', model_name)
-metric_load_file = f'metrics-seed={metric_seed}-img_num={metric_img_num}.pkl'
+metric_load_file = f'metrics-seed={metric_seed}-img_num={metric_img_idx}.pkl'
 file = open(os.path.join(metric_load_dir, metric_load_file), 'rb')
 metrics = loaded_metric = pickle.load(file)
 
@@ -234,7 +239,7 @@ def calc_relative_metric_change(metric, model_name, suptitle, type='subtraction'
         # ax[1].set(title='second normalization layer', ylim=(-1000, 4000))
         ax[1].set(title='second normalization layer')
         fig.suptitle(f'$\Delta$ in {suptitle} via {type}')
-        fig.show()
+        # fig.show()
 
 # comparisons = ['subtraction', 'division']
 comparisons = ['division']
@@ -244,5 +249,27 @@ for c in comparisons:
     calc_relative_metric_change('ev_logdet', model_name, 'log determinant', c)
     calc_relative_metric_change('pr', model_name, 'pr', c)
     calc_relative_metric_change('npr', model_name, 'npr', c)
-# %%
 
+
+# %% plot how the metrics change between layers
+selected_norm_method = 'nn'
+metric_labels = ['ev_sum', 'max_ev', 'ev_logdet', 'pr', 'npr']
+
+def plot_metrics_layerwise(metrics, metric_labels, norm_method, layers, layer_names, title, sharey='all'):
+    fig, ax = plt.subplots(len(metric_labels), 1, figsize=(8,10), sharex='all')  # sharey = 'all' or 'none'
+    for idx, m in enumerate(metric_labels):
+        # layer l
+        per_metric_data = [metrics[norm_method][l][m].item() for l in layers]
+        print(per_metric_data)
+        ax[idx].plot(layer_names, per_metric_data)
+        ax[idx].set(title=f'{m}')
+        # barlist[0].set_color(colorlist[nm])
+    fig.suptitle(title)
+    fig.tight_layout()
+    
+plot_metrics_layerwise(metrics, metric_labels, selected_norm_method, layers, layer_names, title=f'norm: {selected_norm_method}, img_idx: {metric_img_idx}')
+
+plt.plot()
+
+
+# %%

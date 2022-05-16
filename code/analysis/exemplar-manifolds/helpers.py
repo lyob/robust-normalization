@@ -14,6 +14,7 @@ from art.utils import load_cifar10
 
 sys.path.append('..')
 from mftma.manifold_analysis_correlation import manifold_analysis_corr
+from mftma_small.manifold_analysis import manifold_analysis
 from mftma.alldata_dimension_analysis import alldata_dimension_analysis
 sys.path.append('exemplar-manifolds/')
 
@@ -213,7 +214,7 @@ def construct_class_manifold_stimuli(X, Y, P=10, M=50, flat=True):
     
     return X_, Y_
 
-def construct_exemplar_manifold_stimuli(X, Y, P=100, M=50, flat=True):
+def construct_exemplar_manifold_stimuli(X, Y, P=100, M=50, img_choice=False, flat=True):
     """
     X: test set images
     Y: one hot test set labels
@@ -225,8 +226,14 @@ def construct_exemplar_manifold_stimuli(X, Y, P=100, M=50, flat=True):
     stimuli_shape = X.shape[1:]
     label_shape = Y.shape[1:]
     
-    # 100 unique indices
-    idxs = np.random.choice(np.arange(X.shape[0]), size=P, replace=False)
+    if img_choice==False:
+        # 100 unique indices
+        idxs = np.random.choice(np.arange(X.shape[0]), size=P, replace=False)
+    elif type(img_choice)==int and P==1:
+        # choose 1 image index
+        idxs = [img_choice]
+    elif type(img_choice)==list:
+        idxs = img_choice
     
     X = X[idxs]
     Y = Y[idxs]
@@ -314,10 +321,10 @@ def model_layer_map(name, model, norm='nn'):
         }
     elif name == 'lenet':
         norms = {
-            'bn'   : {'2.norm': model.bn1, '5.norm': model.bn2}, 
-            'ln'   : {'2.norm': model.ln1, '5.norm': model.ln2},
-            'in'   : {'2.norm': model.in1, '5.norm': model.in2},
-            'gn'   : {'2.norm': model.gn1, '5.norm': model.gn2},
+            'bn'   : {'2.norm': model.norm_dict1['bn'], '5.norm': model.norm_dict2['bn']}, 
+            'ln'   : {'2.norm': model.norm_dict1['ln'], '5.norm': model.norm_dict2['ln']},
+            'in'   : {'2.norm': model.norm_dict1['in'], '5.norm': model.norm_dict2['in']},
+            'gn'   : {'2.norm': model.norm_dict1['gn'], '5.norm': model.norm_dict2['gn']},
             'nn'   : {'2.norm': model.norm_dict1['nn'], '5.norm': model.norm_dict2['nn']},
             'lrnc' : {'2.norm': model.norm_dict1['lrnc'], '5.norm': model.norm_dict2['lrnc']},
             'lrns' : {'2.norm': model.norm_dict1['lrns'], '5.norm': model.norm_dict2['lrns']},
@@ -334,7 +341,7 @@ def model_layer_map(name, model, norm='nn'):
             '7.linear' : model.fc_1
         }
 
-def MFTMA_analyze_activations(features_dict, P, M, N, kappa=0, NT=100, SIMCAP=False, seed=0, verbose=False):
+def MFTMA_analyze_activations(features_dict, P, M, N, kappa=0, NT=2000, SIMCAP=False, seed=0, labels=None, verbose=True, seeded=False):
     """
     Takes in a dictionary of {'layer': features} and processes each with MFTMA. returns a dataframe with the results.
     features_dict: {'layer': features}
@@ -349,18 +356,37 @@ def MFTMA_analyze_activations(features_dict, P, M, N, kappa=0, NT=100, SIMCAP=Fa
     np.random.seed(seed)
     dfs = []
     for layer, features in tqdm(features_dict.items()):
-        X = process_features(features, P, M, N, seed=seed, verbose=verbose)
+        W, X = process_features(features, P, M, N, seed=seed, verbose=verbose)
+        W = [np.array(W)]
+        print('x shape', np.array(X).shape)
+        print('w shape', np.array(W).shape)
+
 
         # collect MFTMA measures
-        capacity_all, radius_all, dimension_all, center_correlation, K = manifold_analysis_corr(X, kappa, NT)
+        if seeded:
+            np.random.seed(seed)
+            torch.manual_seed(seed)
+        # capacity_all, radius_all, dimension_all, center_correlation, K = manifold_analysis_corr(X, kappa, NT)
+        capacity_all, radius_all, dimension_all = manifold_analysis(X, kappa, NT)
         D_participation_ratio, D_explained_variance, D_feature = alldata_dimension_analysis(X, perc=.9)
 
-        df = pd.DataFrame(
-                columns = ['cap', 'dim', 'rad'],
+        if type(labels)!=np.ndarray and type(labels)!=list:
+            df = pd.DataFrame(
+                    columns = ['cap', 'dim', 'rad'],
+                    data = np.array([
+                            capacity_all,
+                            dimension_all,
+                            radius_all
+                    ]).T
+                )
+        elif type(labels)==np.ndarray or type(labels)==list:
+            df = pd.DataFrame(
+                columns = ['cap', 'dim', 'rad', 'label'],
                 data = np.array([
-                        capacity_all,
-                        dimension_all,
-                        radius_all
+                            capacity_all,
+                            dimension_all, 
+                            radius_all,
+                            labels
                 ]).T
             )
 
@@ -372,8 +398,8 @@ def MFTMA_analyze_activations(features_dict, P, M, N, kappa=0, NT=100, SIMCAP=Fa
             df['Nc0'] = Nc0
 
         df['mean_cap'] = 1/np.mean(1/capacity_all)
-        df['center_corr'] = center_correlation
-        df['K'] = K
+        # df['center_corr'] = center_correlation
+        # df['K'] = K
         df['EVD90'] = D_explained_variance
         df['PR'] = D_participation_ratio
         df['P'] = P
@@ -383,6 +409,11 @@ def MFTMA_analyze_activations(features_dict, P, M, N, kappa=0, NT=100, SIMCAP=Fa
         # network details
         df['layer'] = layer
         df['seed'] = seed
+        df['features'] = X
+        df['projection_matrix'] = pd.Series(W)
+        # df['projection_matrix'] = W
+        
+        # df.reset_index(drop=True, inplace=True)
 
         dfs.append(df)
 
@@ -391,8 +422,11 @@ def MFTMA_analyze_activations(features_dict, P, M, N, kappa=0, NT=100, SIMCAP=Fa
 def process_features(X, P, M, N, NORMALIZE=False, seed=0, verbose=False):
     original_shape = X.shape
     X = X.reshape(P*M, -1)
+    
+    W = [[]]
     if X.shape[-1] > N:
-        X = random_projection(X, N, seed=seed)
+        W, X = random_projection(X, N, seed=seed)
+        # W = W.reshape(-1, 2000)
 
     if NORMALIZE:
         X = normalize(X)
@@ -406,14 +440,14 @@ def process_features(X, P, M, N, NORMALIZE=False, seed=0, verbose=False):
 
     # convert to [(N,M1)...(N,Mp)]
     X = [manifold.T for manifold in X]
-    return X
+    return W, X
 
 def random_projection(X, N_cur, seed=0):
     np.random.seed(seed)
     N = X.shape[1]  # original feature #
     W = np.random.randn(N, N_cur) # randn([pix # x neuron #])
     W = W/np.tile(np.sqrt((W**2).sum(axis=0)), [N,1]) # normalize columns of W
-    return np.dot(X,W) # project stimuli onto W
+    return W, np.dot(X,W) # project stimuli onto W
 
 def normalize(X):
     # expects X shaped # stimuli x num features and returns unit wise normalized features.

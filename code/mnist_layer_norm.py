@@ -189,6 +189,7 @@ class Net_both(nn.Module):
         x = self.conv_2(x)
         x = self.norm_dict2[self.normalize](x)
         x = self.relu(x)
+        print('x size', x.size())
         x = F.max_pool2d(x, 2, 2)
         x = torch.flatten(x, 1)
 

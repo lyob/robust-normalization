@@ -22,8 +22,8 @@ seed = 0
 
 ## manifolds analysis parameters
 manifold_type = 'exemplar' # 'class' for traditional label based manifolds, 'exemplar' for individual exemplar manifolds
-img_idx = [0, 1, 2, 3]  # can be list of ints or False
 img_idx = list(range(50))
+img_idx = [0, 1, 2, 3]  # can be list of ints or False
 P = len(img_idx) # number of manifolds, i.e. the number of images 
 M = 50 # number of examples per manifold, i.e. the number of images that lie in an epsilon ball around the image  
 N = 2000 # maximum number of features to use ??
@@ -141,7 +141,7 @@ print("Accuracy on benign test examples: {}%".format(clean_accuracy * 100))
 from helpers import perturb_stimuli, construct_manifold_stimuli
 
 # either generate new adversarial dataset, or load a pre-generated perturbed dataset
-generate_new_adv_dataset = True
+generate_new_adv_dataset = False
 
 if generate_new_adv_dataset:
 
@@ -206,7 +206,10 @@ if generate_new_adv_dataset:
 else:
     # load saved pre-generated dataset
     load_dir = os.path.join('adversarial_dataset')
-    load_file = f'adversarial_dataset-P={P}-M={M}-N={N}.pkl'
+    if len(img_idx) < 10:
+        load_file = f'adversarial_dataset-P={P}-M={M}-N={N}-img_idx={img_idx}-run=1.pkl'
+    else:
+        load_file = f'adversarial_dataset-P={P}-M={M}-N={N}-range={len(img_idx)}-run=1.pkl'
     file = open(os.path.join(load_dir, load_file), 'rb')
     loaded_data = pickle.load(file)
     
@@ -245,7 +248,7 @@ for k, v in features_dict_description.items():
 
 #%% run MFTMA analysis
 # run MFTMA analysis on all features in the features_dict -- this can take a few minutes!
-NT=2000
+NT=100
 seeded_analysis=False
 seed_everything(seed)
 df = MFTMA_analyze_activations(features_dict, P, M, N, NT=NT, seeded=seeded_analysis, seed=seed, labels=Y_adv)

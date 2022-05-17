@@ -26,22 +26,22 @@ seed = 0
 img_idx = [0, 1,2,3]
 img_idx = list(range(50))
 num_manifolds = len(img_idx)
-plot_img_idx = 6
+plot_img_idx = 0
 NT=100
 seeded=True
 
 # read many files
-# files = [y for x in os.walk(results_dir) for y in glob(os.path.join(x[0], f'*{model_name}*'))]
-# df = pd.concat([pd.read_csv(f) for f in files])
+files = [y for x in os.walk(results_dir) for y in glob(os.path.join(x[0], f'*seed=*-NT=200-seeded=False-run_number=1*'))]
+df = pd.concat([pd.read_csv(f) for f in files])
 
 # read one file
-if len(img_idx) < 10:
-    file_name = f'model={model_name}-manifold={manifold_type}-norm={norm_method}-eps={eps}-iter={iter}-random={random}-seed={seed}-num_manifolds={num_manifolds}-img_idx={img_idx}-NT={NT}-seeded={seeded}.csv'
-else:
-    file_name = f'model={model_name}-manifold={manifold_type}-norm={norm_method}-eps={eps}-iter={iter}-random={random}-seed={seed}-num_manifolds={num_manifolds}-range={len(img_idx)}-NT={NT}-seeded={seeded}.csv'
+# if len(img_idx) < 10:
+#     file_name = f'model={model_name}-manifold={manifold_type}-norm={norm_method}-eps={eps}-iter={iter}-random={random}-seed={seed}-num_manifolds={num_manifolds}-img_idx={img_idx}-NT={NT}-seeded={seeded}.csv'
+# else:
+#     file_name = f'model={model_name}-manifold={manifold_type}-norm={norm_method}-eps={eps}-iter={iter}-random={random}-seed={seed}-num_manifolds={num_manifolds}-range={len(img_idx)}-NT={NT}-seeded={seeded}.csv'
+# df = pd.read_csv(os.path.join(results_dir, file_name))
+# print(df['label'])
     
-df = pd.read_csv(os.path.join(results_dir, file_name))
-print(df['label'])
 
 
 # %% define measures to print

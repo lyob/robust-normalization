@@ -153,20 +153,21 @@ layers = parameters.get('layers')
 layer_names = parameters.get('layer_names')
 
 #%% select and display input image
-img_num = 3
+img_num = 0
 input_img = select_input_img(dataset, img_num)
 
 #%% run the analysis
 metrics = {}
+eigvecs_per_nm = {}
 for nm in norm_method:
     print(f'norm method is {nm}\n')
     model = load_model(model_name, nm)
     model_with_weights = load_model_weights(model, nm)
-    metrics_per_nm = calc_model_fim(model_name, nm, model_with_weights, input_img, layers, layer_names)
+    metrics_per_nm, eigvecs_per_nm = calc_model_fim(model_name, nm, model_with_weights, input_img, layers, layer_names)
     metrics[nm] = metrics_per_nm
     print(f'------------------------\n')
 
-
+#%%
 # save the metrics
 model_save_name = 'lenet' if model_name[:7]=='convnet' else model_name
 metric_save_dir = os.path.join('.', 'analysis', 'fisher-info', 'saved-metrics', model_name)

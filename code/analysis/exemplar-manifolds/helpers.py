@@ -370,22 +370,27 @@ def MFTMA_analyze_activations(features_dict, P, M, N, kappa=0, NT=2000, SIMCAP=F
         capacity_all, radius_all, dimension_all = manifold_analysis(X, kappa, NT)
         D_participation_ratio, D_explained_variance, D_feature = alldata_dimension_analysis(X, perc=.9)
 
+        width = np.multiply(radius_all, dimension_all)
+        # print('width shape', width.shape)
+
         if type(labels)!=np.ndarray and type(labels)!=list:
             df = pd.DataFrame(
-                    columns = ['cap', 'dim', 'rad'],
+                    columns = ['cap', 'dim', 'rad', 'width'],
                     data = np.array([
                             capacity_all,
                             dimension_all,
-                            radius_all
+                            radius_all,
+                            width
                     ]).T
                 )
         elif type(labels)==np.ndarray or type(labels)==list:
             df = pd.DataFrame(
-                columns = ['cap', 'dim', 'rad', 'label'],
+                columns = ['cap', 'dim', 'rad', 'width', 'label'],
                 data = np.array([
                             capacity_all,
                             dimension_all, 
                             radius_all,
+                            width,
                             labels
                 ]).T
             )

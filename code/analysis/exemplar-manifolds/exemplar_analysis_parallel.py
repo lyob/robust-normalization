@@ -270,9 +270,9 @@ def main():
     M = 50 # number of examples per manifold, i.e. the number of images that lie in an epsilon ball around the image
     N = 2000 # maximum number of features to use
     NT = 200  # number of sampled directions
-    seed = 0
+    seed = [1, 2, 3, 4, 5]
     seeded_analysis = False
-    analysis_run_number = [1, 2, 3, 4, 5]
+    analysis_run_number = [1]
     
     base_save_folder = 'results'
     
@@ -321,28 +321,30 @@ def main():
     jobs = []
     with ex.batch():
         # iterate through all the parameters
-        for s in model_load_seed:
+        for ls in model_load_seed:
             for n in norm_method:
                 for e in eps:
                     for r in analysis_run_number:
-                        job = ex.submit(
-                            run_analysis, 
-                            model_load_name, model_save_name, 
-                            n, wd, lr, s,
-                            generate_new, manifold_type, e, max_iter, eps_step_factor, attack_mode, random, img_idx, dataset_run_number,
-                            P, M, N, NT, seed, seeded_analysis, r,
-                            base_save_folder
-                        )
-                        jobs.append(job)
+                        for s in seed:
+                            job = ex.submit(
+                                run_analysis, 
+                                model_load_name, model_save_name, 
+                                n, wd, lr, ls,
+                                generate_new, manifold_type, e, max_iter, eps_step_factor, attack_mode, random, img_idx, dataset_run_number,
+                                P, M, N, NT, s, seeded_analysis, r,
+                                base_save_folder
+                            )
+                            jobs.append(job)
     print('all jobs submitted!')
 
     idx = 0
-    for s in model_load_seed:
+    for ls in model_load_seed:
         for n in norm_method:
             for e in eps:
                 for r in analysis_run_number:
-                    print(f'Job {jobs[idx].job_id} === seed: {s}, norm method: {n}, eps: {e}, run_number: {r}')
-                    idx += 1
+                    for s in seed:
+                        print(f'Job {jobs[idx].job_id} === seed: {s}, norm method: {n}, eps: {e}, run_number: {r}')
+                        idx += 1
 
 
 if __name__ == "__main__":

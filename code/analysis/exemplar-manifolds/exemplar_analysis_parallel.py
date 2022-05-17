@@ -269,7 +269,7 @@ def main():
     P = len(img_idx) # number of manifolds, i.e. the number of images
     M = 50 # number of examples per manifold, i.e. the number of images that lie in an epsilon ball around the image
     N = 2000 # maximum number of features to use
-    NT = 2000  # number of sampled directions
+    NT = 200  # number of sampled directions
     seed = 0
     seeded_analysis = False
     analysis_run_number = [1, 2, 3, 4, 5]

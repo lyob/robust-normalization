@@ -97,6 +97,7 @@ def create_manifold_stimuli(generate_new: bool, classifier, manifold_type, P, M,
     print('constructing manifold stimuli...')
 
     if generate_new:
+        print('generating new dataset...')
         x_test, y_test, _, _ = load_dataset()
         X, Y = construct_manifold_stimuli(x_test, y_test, manifold_type, P=P, M=M, img_choice=img_idx)
         seed_everything(seed)
@@ -123,8 +124,12 @@ def create_manifold_stimuli(generate_new: bool, classifier, manifold_type, P, M,
         pickle.dump(data_to_save, save_file)
         save_file.close()
     else:
+        print('loading saved dataset...')
         load_dir = os.path.join('adversarial_dataset')
-        load_file = f'adversarial_dataset-P={P}-M={M}-N={N}.pkl'
+        if len(img_idx) < 10:
+            load_file = f'adversarial_dataset-P={P}-M={M}-N={N}-img_idx={img_idx}-run={run_number}.pkl'
+        else:
+            load_file = f'adversarial_dataset-P={P}-M={M}-N={N}-range={len(img_idx)}-run={run_number}.pkl'
         file = open(os.path.join(load_dir, load_file), 'rb')
         loaded_data = pickle.load(file)
         
@@ -173,7 +178,7 @@ def run_mftma(features_dict, Y_adv, P, M, N, NT, seeded, seed, model_name, manif
     print('running mftma...')
 
     seed_everything(seed)
-    df = MFTMA_analyze_activations(features_dict, P, M, N, NT, seeded, seed, labels=Y_adv)
+    df = MFTMA_analyze_activations(features_dict, P, M, N, NT=NT, seeded=seeded, seed=seed, labels=Y_adv)
 
     eps_step = eps/eps_step_factor
 
@@ -205,9 +210,9 @@ def save_results(df, results_dir, model_save_name, file_name):
 
 #%% ANALYSIS
 def run_analysis(
-                    model_load_name, model_save_name, generate_new, 
+                    model_load_name, model_save_name, 
                     norm_method, wd, lr, model_load_seed, 
-                    manifold_type, eps, max_iter, eps_step_factor, attack_mode, random, img_idx, dataset_run_number,
+                    generate_new, manifold_type, eps, max_iter, eps_step_factor, attack_mode, random, img_idx, dataset_run_number,
                     P, M, N, NT, seed, seeded_analysis, analysis_run_number, 
                     results_dir='results'
                 ):
@@ -219,10 +224,9 @@ def run_analysis(
     model = load_model(model_load_name, norm_method)
     classifier = load_model_state(model_load_name, norm_method, model, wd, lr, model_load_seed)
     clean_acc = get_clean_accuracy(classifier)
-    generate_new = True
     X_adv, Y_adv, adv_accuracy = create_manifold_stimuli(generate_new, classifier, manifold_type, P, M, N, img_idx, eps, eps_step_factor, max_iter, random, seed, dataset_run_number)
     
-    features_dict = extract_representations(model_save_name, model, norm_method, X_adv, Y_adv)
+    features_dict = extract_representations(model_save_name, model, norm_method, X_adv)
     df = run_mftma(features_dict, Y_adv, P, M, N, NT, seeded_analysis, seed, model_load_name, manifold_type, norm_method, clean_acc, adv_accuracy, eps, eps_step_factor, max_iter, random)
 
     if len(img_idx) < 10:
@@ -240,34 +244,35 @@ def main():
     # parameters pertaining to model and dataset details
     model_load_name = 'convnet4'
     model_save_name = 'lenet'
-    generate_new = True
     dataset = 'mnist'
     
     # parameters for loading the weights of the trained model
-    norm_method = ['bn']
+    norm_method = ['nn']
     # norm_method = ['nn', 'bn', 'in', 'gn', 'ln', 'lrnb', 'lrnc', 'lrns']
     wd = 0.005
     lr = 0.01
     model_load_seed = [1]
     
     # parameter for creating (exemplar) manifold
+    generate_new = False
     manifold_type = 'exemplar' # 'class' for traditional label based manifolds, 'exemplar' for individual exemplar manifolds
     eps = [0.1]
     max_iter = 1
     eps_step_factor = 1
     attack_mode = 'inf'  # inf, 1, 2, None, default=inf
     random = False # adversarial perturbation if false, random perturbation if true
-    img_idx = [0, 1]  # select which images from the test dataset to condition on, can be list of ints or `False`
+    # img_idx = [0, 4]  # select which images from the test dataset to condition on, can be list of ints or `False`
+    img_idx = list(range(50))  # select which images from the test dataset to condition on, can be list of ints or `False`
     dataset_run_number = 1
     
     # parameters for running analysis
-    P = 50 # number of manifolds, i.e. the number of images
+    P = len(img_idx) # number of manifolds, i.e. the number of images
     M = 50 # number of examples per manifold, i.e. the number of images that lie in an epsilon ball around the image
     N = 2000 # maximum number of features to use
-    NT = 100  # number of sampled directions
+    NT = 2000  # number of sampled directions
     seed = 0
-    seeded_analysis = True
-    analysis_run_number = [1]
+    seeded_analysis = False
+    analysis_run_number = [1, 2, 3, 4, 5]
     
     base_save_folder = 'results'
     
@@ -322,9 +327,9 @@ def main():
                     for r in analysis_run_number:
                         job = ex.submit(
                             run_analysis, 
-                            model_load_name, model_save_name, generate_new,
+                            model_load_name, model_save_name, 
                             n, wd, lr, s,
-                            manifold_type, e, max_iter, eps_step_factor, attack_mode, random, img_idx, dataset_run_number,
+                            generate_new, manifold_type, e, max_iter, eps_step_factor, attack_mode, random, img_idx, dataset_run_number,
                             P, M, N, NT, seed, seeded_analysis, r,
                             base_save_folder
                         )
@@ -334,8 +339,10 @@ def main():
     idx = 0
     for s in model_load_seed:
         for n in norm_method:
-            print(f'Job {jobs[idx].job_id} === seed: {s}, norm method: {n}')
-            idx += 1
+            for e in eps:
+                for r in analysis_run_number:
+                    print(f'Job {jobs[idx].job_id} === seed: {s}, norm method: {n}, eps: {e}, run_number: {r}')
+                    idx += 1
 
 
 if __name__ == "__main__":

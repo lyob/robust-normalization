@@ -2,6 +2,7 @@
 import os
 import sys
 import random
+from tkinter import E
 
 import torch
 import torch.nn as nn
@@ -100,10 +101,10 @@ def create_manifold_stimuli(generate_new: bool, classifier, manifold_type, P, M,
         print('generating new dataset...')
         x_test, y_test, _, _ = load_dataset()
         X, Y = construct_manifold_stimuli(x_test, y_test, manifold_type, P=P, M=M, img_choice=img_idx)
-        seed_everything(seed)
         if (eps == 0):
             X_adv = X
         else:
+            seed_everything(seed)
             X_adv = perturb_stimuli(
                 X, 
                 Y, 
@@ -177,7 +178,7 @@ def extract_representations(model_name, model, normalize, X_adv):
 def run_mftma(features_dict, Y_adv, P, M, N, NT, seeded, seed, model_name, manifold_type, norm_method, clean_accuracy, adv_accuracy, eps, eps_step_factor, max_iter, random):
     print('running mftma...')
 
-    seed_everything(seed)
+    # seed_everything(seed)
     df = MFTMA_analyze_activations(features_dict, P, M, N, NT=NT, seeded=seeded, seed=seed, labels=Y_adv)
 
     eps_step = eps/eps_step_factor
@@ -212,27 +213,38 @@ def save_results(df, results_dir, model_save_name, file_name):
 def run_analysis(
                     model_load_name, model_save_name, 
                     norm_method, wd, lr, model_load_seed, 
-                    generate_new, manifold_type, eps, max_iter, eps_step_factor, attack_mode, random, img_idx, dataset_run_number,
-                    P, M, N, NT, seed, seeded_analysis, analysis_run_number, 
+                    generate_new, manifold_type, eps, max_iter, eps_step_factor, attack_mode, random, img_idx, dataset_run_number, seed_dataset,
+                    P, M, N, NT, is_seeded, seed_analysis, analysis_run_number, 
                     results_dir='results'
                 ):
-                        
-    seed_everything(seed)
     global device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     model = load_model(model_load_name, norm_method)
     classifier = load_model_state(model_load_name, norm_method, model, wd, lr, model_load_seed)
     clean_acc = get_clean_accuracy(classifier)
-    X_adv, Y_adv, adv_accuracy = create_manifold_stimuli(generate_new, classifier, manifold_type, P, M, N, img_idx, eps, eps_step_factor, max_iter, random, seed, dataset_run_number)
-    
+
+    # create or load manifold dataset
+    X_adv, Y_adv, adv_accuracy = create_manifold_stimuli(generate_new, classifier, manifold_type, P, M, N, img_idx, eps, eps_step_factor, max_iter, random, seed_dataset, dataset_run_number)
+
+    # extract model features        
     features_dict = extract_representations(model_save_name, model, norm_method, X_adv)
-    df = run_mftma(features_dict, Y_adv, P, M, N, NT, seeded_analysis, seed, model_load_name, manifold_type, norm_method, clean_acc, adv_accuracy, eps, eps_step_factor, max_iter, random)
+
+    if not is_seeded:
+        seed_analysis == is_seeded
+
+    # run the mftma analysis
+    df = run_mftma(features_dict, Y_adv, P, M, N, NT, is_seeded, seed_analysis, model_load_name, manifold_type, norm_method, clean_acc, adv_accuracy, eps, eps_step_factor, max_iter, random)
+
+    # if is_seeded:
+    #     seed_save_string = f'{seed_analysis}'
+    # else:
+    #     seed_save_string = f'False'
 
     if len(img_idx) < 10:
-        file_name = f'model={model_save_name}-manifold={manifold_type}-norm={norm_method}-eps={eps}-iter={max_iter}-random={random}-seed={seed}-num_manifolds={P}-img_idx={img_idx}-NT={NT}-seeded={seeded_analysis}-run_number={analysis_run_number}.csv'
+        file_name = f'model={model_save_name}-manifold={manifold_type}-norm={norm_method}-eps={eps}-iter={max_iter}-random={random}-seeded={is_seeded}-seed_analysis={seed_analysis}-num_manifolds={P}-img_idx={img_idx}-NT={NT}-run_number={analysis_run_number}.csv'
     else:
-        file_name = f'model={model_save_name}-manifold={manifold_type}-norm={norm_method}-eps={eps}-iter={max_iter}-random={random}-seed={seed}-num_manifolds={P}-range={len(img_idx)}-NT={NT}-seeded={seeded_analysis}-run_number={analysis_run_number}.csv'
+        file_name = f'model={model_save_name}-manifold={manifold_type}-norm={norm_method}-eps={eps}-iter={max_iter}-random={random}-seeded={is_seeded}-seed_analysis={seed_analysis}-num_manifolds={P}-range={len(img_idx)}-NT={NT}-run_number={analysis_run_number}.csv'
     save_results(df, results_dir, model_save_name, file_name)
 
 
@@ -264,14 +276,15 @@ def main():
     # img_idx = [0, 4]  # select which images from the test dataset to condition on, can be list of ints or `False`
     img_idx = list(range(50))  # select which images from the test dataset to condition on, can be list of ints or `False`
     dataset_run_number = 1
+    seed_dataset = 1
     
     # parameters for running analysis
     P = len(img_idx) # number of manifolds, i.e. the number of images
     M = 50 # number of examples per manifold, i.e. the number of images that lie in an epsilon ball around the image
     N = 2000 # maximum number of features to use
     NT = 200  # number of sampled directions
-    seed = [1, 2, 3, 4, 5]
-    seeded_analysis = False
+    is_seeded = False
+    seed_analysis = [1, 2, 3]
     analysis_run_number = [1]
     
     base_save_folder = 'results'
@@ -325,13 +338,13 @@ def main():
             for n in norm_method:
                 for e in eps:
                     for r in analysis_run_number:
-                        for s in seed:
+                        for s_a in seed_analysis:
                             job = ex.submit(
                                 run_analysis, 
                                 model_load_name, model_save_name, 
                                 n, wd, lr, ls,
-                                generate_new, manifold_type, e, max_iter, eps_step_factor, attack_mode, random, img_idx, dataset_run_number,
-                                P, M, N, NT, s, seeded_analysis, r,
+                                generate_new, manifold_type, e, max_iter, eps_step_factor, attack_mode, random, img_idx, dataset_run_number, seed_dataset,
+                                P, M, N, NT, is_seeded, s_a, r,
                                 base_save_folder
                             )
                             jobs.append(job)
@@ -342,10 +355,13 @@ def main():
         for n in norm_method:
             for e in eps:
                 for r in analysis_run_number:
-                    for s in seed:
+                    for s in seed_analysis:
                         print(f'Job {jobs[idx].job_id} === seed: {s}, norm method: {n}, eps: {e}, run_number: {r}')
                         idx += 1
 
 
 if __name__ == "__main__":
     main()
+
+
+

@@ -353,7 +353,7 @@ def MFTMA_analyze_activations(features_dict, P, M, N, kappa=0, NT=2000, SIMCAP=F
     SIMCAP: also simulate the capacity to measure empirically
     seed: random seed to use
     """
-    np.random.seed(seed)
+    # np.random.seed(seed)
     dfs = []
     for layer, features in tqdm(features_dict.items()):
         W, X = process_features(features, P, M, N, seed=seed, verbose=verbose)
@@ -365,12 +365,11 @@ def MFTMA_analyze_activations(features_dict, P, M, N, kappa=0, NT=2000, SIMCAP=F
         # collect MFTMA measures
         if seeded:
             np.random.seed(seed)
-            torch.manual_seed(seed)
         # capacity_all, radius_all, dimension_all, center_correlation, K = manifold_analysis_corr(X, kappa, NT)
         capacity_all, radius_all, dimension_all = manifold_analysis(X, kappa, NT)
         D_participation_ratio, D_explained_variance, D_feature = alldata_dimension_analysis(X, perc=.9)
 
-        width = np.multiply(radius_all, dimension_all)
+        width = np.multiply(radius_all, np.sqrt(dimension_all))
         # print('width shape', width.shape)
 
         if type(labels)!=np.ndarray and type(labels)!=list:

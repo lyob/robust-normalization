@@ -251,7 +251,7 @@ for k, v in features_dict_description.items():
 NT=100
 seeded_analysis=False
 seed_everything(seed)
-df = MFTMA_analyze_activations(features_dict, P, M, N, NT=NT, seeded=seeded_analysis, seed=seed, labels=Y_adv)
+df = MFTMA_analyze_activations(features_dict, img_idx, P, M, N, NT=NT, seeded=seeded_analysis, seed=seed, labels=Y_adv)
 
 ## add additional meta data
 df['model'] = model_name

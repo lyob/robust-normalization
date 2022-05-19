@@ -341,7 +341,7 @@ def model_layer_map(name, model, norm='nn'):
             '7.linear' : model.fc_1
         }
 
-def MFTMA_analyze_activations(features_dict, P, M, N, kappa=0, NT=2000, SIMCAP=False, seed=0, labels=None, verbose=True, seeded=False):
+def MFTMA_analyze_activations(features_dict, img_idx, P, M, N, kappa=0, NT=2000, SIMCAP=False, seed=0, labels=None, verbose=True, seeded=False):
     """
     Takes in a dictionary of {'layer': features} and processes each with MFTMA. returns a dataframe with the results.
     features_dict: {'layer': features}
@@ -353,6 +353,10 @@ def MFTMA_analyze_activations(features_dict, P, M, N, kappa=0, NT=2000, SIMCAP=F
     SIMCAP: also simulate the capacity to measure empirically
     seed: random seed to use
     """
+    
+    # img_idx = np.repeat([img_idx], M, axis=0).T
+    # print('img idx shape', img_idx.shape)
+    
     # np.random.seed(seed)
     dfs = []
     for layer, features in tqdm(features_dict.items()):
@@ -370,7 +374,7 @@ def MFTMA_analyze_activations(features_dict, P, M, N, kappa=0, NT=2000, SIMCAP=F
         D_participation_ratio, D_explained_variance, D_feature = alldata_dimension_analysis(X, perc=.9)
 
         width = np.multiply(radius_all, np.sqrt(dimension_all))
-        # print('width shape', width.shape)
+        print('width shape', width.shape)
 
         if type(labels)!=np.ndarray and type(labels)!=list:
             df = pd.DataFrame(
@@ -384,13 +388,14 @@ def MFTMA_analyze_activations(features_dict, P, M, N, kappa=0, NT=2000, SIMCAP=F
                 )
         elif type(labels)==np.ndarray or type(labels)==list:
             df = pd.DataFrame(
-                columns = ['cap', 'dim', 'rad', 'width', 'label'],
+                columns = ['cap', 'dim', 'rad', 'width', 'label', 'img_idx'],
                 data = np.array([
                             capacity_all,
                             dimension_all, 
                             radius_all,
                             width,
-                            labels
+                            labels,
+                            img_idx
                 ]).T
             )
 

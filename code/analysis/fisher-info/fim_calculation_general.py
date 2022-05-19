@@ -68,10 +68,11 @@ def calc_metrics(eig_vals, inverse=False):
     return ev_logdet, ev_sum, pr, npr
 
 # calculate the FIM of the model wrt the input image, and return a measure of model sensitivity
-def calc_model_fim(model_name, norm_method, model, input_img, layers, layer_names):    
+def calc_model_fim(model_name, norm_method, model, input_img, layers, layer_names, show_plot=True):    
     metrics = {}
     eigvecs = {}
-    fig, ax = plt.subplots(1, 1, sharey='all')
+    if show_plot:
+        fig, ax = plt.subplots(1, 1, sharey='all')
     for idx, l in enumerate(layers):
         print(f'layer {l}')
         metrics_per_layer = {}
@@ -90,13 +91,14 @@ def calc_model_fim(model_name, norm_method, model, input_img, layers, layer_name
         # resize the eigvecs to a matrix shape
         eigvec = eigvec.view(eigvec.size()[0], -1)
         eigvecs[l] = eigvec
-        
-        # plot the eigendistortions
-        ax.plot(eigval, '.', label=f'layer {l}: {layer_names[l]}')
-        model_name = '3 layer LeNet' if model_name[:7]=='convnet' else model_name
-        ax.set(title=f'Eigenvalues for {model_name}, nm={norm_method}', xlabel='Eigenvector index', ylabel='Eigenvalue')
-        ax.legend()
-        fig.tight_layout()
+       
+        if show_plot: 
+            # plot the eigendistortions
+            ax.plot(eigval, '.', label=f'layer {l}: {layer_names[l]}')
+            model_name = '3 layer LeNet' if model_name[:7]=='convnet' else model_name
+            ax.set(title=f'Eigenvalues for {model_name}, nm={norm_method}', xlabel='Eigenvector index', ylabel='Eigenvalue')
+            ax.legend()
+            fig.tight_layout()
 
         # calculate the volume of sensitivity and its proxies
         ev_logdet, ev_sum, pr, npr = calc_metrics(eigval)
@@ -108,15 +110,15 @@ def calc_model_fim(model_name, norm_method, model, input_img, layers, layer_name
         # ev_sum = torch.sum(eigval)
         # print(f'sum of the eigenvalues is {ev_sum}')
 
-        metrics_per_layer['ev_logdet'] = ev_logdet
-        metrics_per_layer['ev_sum'] = ev_sum
-        metrics_per_layer['max_ev'] = max_eigval
+        metrics_per_layer['logdet'] = ev_logdet
+        metrics_per_layer['sum'] = ev_sum
+        metrics_per_layer['max'] = max_eigval
         metrics_per_layer['pr'] = pr
         metrics_per_layer['npr'] = npr
 
 
         metrics[l] = metrics_per_layer
-    return metrics, eigvecs
+    return metrics, eigval, eigvecs
 
 #################################################################################################################################
 #################################################################################################################################
@@ -131,7 +133,7 @@ lenet_parameters = {
     'norm_position' : 'both',
     'dataset': 'mnist',
     'seed' : 1,
-    'norm_method' : ['ln', 'in', 'bn', 'gn', 'nn', 'lrnb', 'lrnc', 'lrns'],
+    'norm_methods' : ['ln', 'in', 'bn', 'gn', 'nn', 'lrnb', 'lrnc', 'lrns'],
     # 'norm_method' : ['nn'],
     'lr' : 0.01,
     'wd' : 0.005,
@@ -143,7 +145,7 @@ parameters = lenet_parameters
 
 model_name = parameters.get('model_name')
 frontend = parameters.get('frontend')
-norm_method = parameters.get('norm_method')
+norm_methods = parameters.get('norm_methods')
 dataset = parameters.get('dataset')
 seed = parameters.get('seed')
 norm_position = parameters.get('norm_position')
@@ -152,31 +154,68 @@ wd = parameters.get('wd')
 layers = parameters.get('layers')
 layer_names = parameters.get('layer_names')
 
-#%% select and display input image
+#%% get metrics for one image, many norm methods
+# select and display input image
 img_num = 0
 input_img = select_input_img(dataset, img_num)
+def get_metrics_per_image(model_name, norm_methods, input_img, layers, layer_names):
+    metrics = {}
+    eigvals = {}
+    eigvecs = {}
+    for nm in norm_methods:
+        print(f'norm method is {nm}\n')
+        model = load_model(model_name, nm)
+        model_with_weights = load_model_weights(model, nm)
+        metrics_per_nm, eigvals_per_nm, eigvecs_per_nm = calc_model_fim(model_name, nm, model_with_weights, input_img, layers, layer_names, show_plot=False)
+        metrics[nm] = metrics_per_nm
+        eigvals[nm] = eigvals_per_nm
+        eigvecs[nm] = eigvecs_per_nm
+        print(f'------------------------\n')
+    return (metrics, eigvals, eigvecs)
+        
+metrics_per_img = get_metrics_per_image(model_name, norm_methods, input_img, layers, layer_names)
+(metrics, eigvals, eigvecs) = metrics_per_img
 
-#%% run the analysis
-metrics = {}
-eigvecs_per_nm = {}
-for nm in norm_method:
-    print(f'norm method is {nm}\n')
-    model = load_model(model_name, nm)
-    model_with_weights = load_model_weights(model, nm)
-    metrics_per_nm, eigvecs_per_nm = calc_model_fim(model_name, nm, model_with_weights, input_img, layers, layer_names)
-    metrics[nm] = metrics_per_nm
-    print(f'------------------------\n')
-
-#%%
 # save the metrics
 model_save_name = 'lenet' if model_name[:7]=='convnet' else model_name
 metric_save_dir = os.path.join('.', 'analysis', 'fisher-info', 'saved-metrics', model_name)
 if not os.path.exists(metric_save_dir):
     os.makedirs(metric_save_dir, exist_ok=True)
-metric_save_name = os.path.join(metric_save_dir, f'metrics-seed={seed}-img_num={img_num}.pkl')
-pickle.dump(metrics, open(metric_save_name,'wb'))
+metric_save_name = os.path.join(metric_save_dir, f'per-nm-metrics-seed={seed}-img_num={img_num}.pkl')
+pickle.dump(metrics_per_img, open(metric_save_name,'wb'))
 
-# %% plot how the FIM changed between norm methods
+
+#%% get metrics for many images, one norm method
+norm_method = 'nn'
+def get_metrics_per_nm(model_name, norm_method, dataset, layers, layer_names):
+    metrics = {}
+    eigvals = {}
+    eigvecs = {}
+    for img_idx in range(6):
+        input_img = select_input_img(dataset, img_idx)
+        model = load_model(model_name, norm_method)
+        model_with_weights = load_model_weights(model, norm_method)
+        metrics_per_img, eigvals_per_img, eigvecs_per_img = calc_model_fim(model_name, norm_method, model_with_weights, input_img, layers, layer_names, show_plot=False)
+        metrics[img_idx] = metrics_per_img
+        eigvals[img_idx] = eigvals_per_img
+        eigvecs[img_idx] = eigvecs_per_img
+    return (metrics, eigvals, eigvecs)
+
+metrics_per_nm = get_metrics_per_nm(model_name, norm_method, dataset, layers, layer_names)
+(metrics, eigvals, eigvecs) = metrics_per_nm
+
+# save the metrics
+model_save_name = 'lenet' if model_name[:7]=='convnet' else model_name
+metric_save_dir = os.path.join('.', 'analysis', 'fisher-info', 'saved-metrics', model_name)
+if not os.path.exists(metric_save_dir):
+    os.makedirs(metric_save_dir, exist_ok=True)
+metric_save_name = os.path.join(metric_save_dir, f'per-img-metrics-seed={seed}-norm_method={norm_method}.pkl')
+pickle.dump(metrics_per_nm, open(metric_save_name, 'wb'))
+
+
+
+
+# %% plot how the FIM changed between norm methods (use the per-one-img method above ^^)
 colorlist = {
     "bn": (0.21607792, 0.39736958, 0.61948028),
     "gn": (0.20344718, 0.56074869, 0.65649508),
@@ -229,7 +268,6 @@ def calc_relative_metric_change(metric, model_name, suptitle, type='subtraction'
             elif type=='division':
                 delta_layer1[nm] = loaded_metric[nm][1][metric] / loaded_metric[nm][0][metric]
                 delta_layer2[nm] = loaded_metric[nm][4][metric] / loaded_metric[nm][3][metric]
-
         fig, ax = plt.subplots(1, 2, figsize=(10, 5))
         for nm in norm_method:
             barlist1 = ax[0].bar(nm, delta_layer1[nm])

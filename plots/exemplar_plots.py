@@ -23,15 +23,17 @@ eps = 0.1
 iter = 1
 random = False
 seed = 0
-img_idx = [0, 1,2,3]
+img_idx = [0,1,2,3]
 img_idx = list(range(50))
 num_manifolds = len(img_idx)
-plot_img_idx = 0
-NT=100
-seeded=True
+plot_img_idx = 1
+
+# select the csv files
+NT=2000
+seeded=False
 
 # read many files
-files = [y for x in os.walk(results_dir) for y in glob(os.path.join(x[0], f'*seed=*-NT=200-seeded=False-run_number=1*'))]
+files = [y for x in os.walk(results_dir) for y in glob(os.path.join(x[0], f'*seeded={seeded}-seed_analysis*-NT={NT}*'))]
 df = pd.concat([pd.read_csv(f) for f in files])
 
 # read one file
@@ -46,7 +48,7 @@ df = pd.concat([pd.read_csv(f) for f in files])
 
 # %% define measures to print
 if type(img_idx) == list:
-    measures = ['mean_cap', 'cap', 'dim', 'rad', 'EVD90', 'PR']
+    measures = ['mean_cap', 'cap', 'dim', 'rad', 'width', 'EVD90', 'PR']
 else:
     measures = ['mean_cap', 'dim', 'rad', 'center_corr', 'EVD90', 'PR']
 # eps_val = '6.0'

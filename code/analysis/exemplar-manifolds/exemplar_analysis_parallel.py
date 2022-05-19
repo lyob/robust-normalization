@@ -282,9 +282,9 @@ def main():
     P = len(img_idx) # number of manifolds, i.e. the number of images
     M = 50 # number of examples per manifold, i.e. the number of images that lie in an epsilon ball around the image
     N = 2000 # maximum number of features to use
-    NT = 200  # number of sampled directions
-    is_seeded = True
-    seed_analysis = [1, 2, 3]
+    NT = 2000  # number of sampled directions
+    is_seeded = False
+    seed_analysis = [4, 5]
     analysis_run_number = [1]
     
     base_save_folder = 'results'
@@ -314,7 +314,7 @@ def main():
             nodes=1,
             slurm_partition="ccn", 
             cpus_per_task=4,
-            mem_gb=8,  # 32gb for train mode, 8gb for eval mode
+            mem_gb=4,  # 32gb for train mode, 8gb for eval mode
             timeout_min=60
         )
     elif resources == 'gpu':

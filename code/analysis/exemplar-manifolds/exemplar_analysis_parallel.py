@@ -175,11 +175,11 @@ def extract_representations(model_name, model, normalize, X_adv):
 
 
 # run MFTMA analysis on all features in the features_dict -- this can take a few minutes!
-def run_mftma(features_dict, Y_adv, P, M, N, NT, seeded, seed, model_name, manifold_type, norm_method, clean_accuracy, adv_accuracy, eps, eps_step_factor, max_iter, random):
+def run_mftma(features_dict, img_idx, Y_adv, P, M, N, NT, seeded, seed, model_name, manifold_type, norm_method, clean_accuracy, adv_accuracy, eps, eps_step_factor, max_iter, random):
     print('running mftma...')
 
     # seed_everything(seed)
-    df = MFTMA_analyze_activations(features_dict, P, M, N, NT=NT, seeded=seeded, seed=seed, labels=Y_adv)
+    df = MFTMA_analyze_activations(features_dict, img_idx, P, M, N, NT=NT, seeded=seeded, seed=seed, labels=Y_adv)
 
     eps_step = eps/eps_step_factor
 
@@ -234,7 +234,7 @@ def run_analysis(
         seed_analysis == is_seeded
 
     # run the mftma analysis
-    df = run_mftma(features_dict, Y_adv, P, M, N, NT, is_seeded, seed_analysis, model_load_name, manifold_type, norm_method, clean_acc, adv_accuracy, eps, eps_step_factor, max_iter, random)
+    df = run_mftma(features_dict, img_idx, Y_adv, P, M, N, NT, is_seeded, seed_analysis, model_load_name, manifold_type, norm_method, clean_acc, adv_accuracy, eps, eps_step_factor, max_iter, random)
 
     # if is_seeded:
     #     seed_save_string = f'{seed_analysis}'
@@ -284,7 +284,7 @@ def main():
     N = 2000 # maximum number of features to use
     NT = 2000  # number of sampled directions
     is_seeded = False
-    seed_analysis = [4, 5]
+    seed_analysis = [0, 1, 2, 3, 4, 5]
     analysis_run_number = [1]
     
     base_save_folder = 'results'

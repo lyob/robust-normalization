@@ -19,6 +19,8 @@ slurm_jobs/**/logs/
 datasets/*
 results/*
 
+code/analysis/fisher-info/saved-metrics/convnet4/initial_metrics/*-num_images=50.pkl
+
 plots/figures/
 *.png
 

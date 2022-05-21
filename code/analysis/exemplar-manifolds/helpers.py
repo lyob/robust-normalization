@@ -370,11 +370,17 @@ def MFTMA_analyze_activations(features_dict, img_idx, P, M, N, kappa=0, NT=2000,
         if seeded:
             np.random.seed(seed)
         # capacity_all, radius_all, dimension_all, center_correlation, K = manifold_analysis_corr(X, kappa, NT)
-        capacity_all, radius_all, dimension_all = manifold_analysis(X, kappa, NT)
+        capacity_all, radius_all, dimension_all, centroid_norms = manifold_analysis(X, kappa, NT)
+        # print('capacity_all.shape', capacity_all.shape)
+        # print('centroid_norms.shape', centroid_norms.shape)
+        
         D_participation_ratio, D_explained_variance, D_feature = alldata_dimension_analysis(X, perc=.9)
 
         width = np.multiply(radius_all, np.sqrt(dimension_all))
         print('width shape', width.shape)
+        
+        scaling_width = np.multiply(width, centroid_norms)
+        print('width shape', scaling_width.shape)
 
         if type(labels)!=np.ndarray and type(labels)!=list:
             df = pd.DataFrame(
@@ -388,14 +394,16 @@ def MFTMA_analyze_activations(features_dict, img_idx, P, M, N, kappa=0, NT=2000,
                 )
         elif type(labels)==np.ndarray or type(labels)==list:
             df = pd.DataFrame(
-                columns = ['cap', 'dim', 'rad', 'width', 'label', 'img_idx'],
+                columns = ['cap', 'dim', 'rad', 'width', 'centroid_norms', 'scaling_width', 'label', 'img_idx',],
                 data = np.array([
                             capacity_all,
                             dimension_all, 
                             radius_all,
                             width,
+                            centroid_norms,
+                            scaling_width,
                             labels,
-                            img_idx
+                            img_idx,
                 ]).T
             )
 
@@ -426,7 +434,7 @@ def MFTMA_analyze_activations(features_dict, img_idx, P, M, N, kappa=0, NT=2000,
 
         dfs.append(df)
 
-    return pd.concat(dfs)
+    return pd.concat(dfs, ignore_index=True)
 
 def process_features(X, P, M, N, NORMALIZE=False, seed=0, verbose=False):
     original_shape = X.shape

@@ -68,17 +68,17 @@ def calc_metrics(eig_vals, inverse=False):
     return ev_logdet, ev_sum, pr, npr
 
 # calculate the FIM of the model wrt the input image, and return a measure of model sensitivity
-def calc_model_fim(model_name, norm_method, model, input_img, layers, layer_names, show_plot=True):    
+def calc_model_fim(model_name, norm_method, model, input_img, layer_names, show_plot=True):    
     metrics = {}
     eigvecs = {}
     if show_plot:
         fig, ax = plt.subplots(1, 1, sharey='all')
-    for idx, l in enumerate(layers):
+    for idx, l in enumerate(layer_names):
         print(f'layer {l}')
         metrics_per_layer = {}
 
         # select the layer        
-        layer = NthLayer(model, norm_method, layer=l)
+        layer = NthLayer(model, norm_method, layer=idx)
 
         # find the eigendistortions for the model
         ed_lenet = Eigendistortion(input_img, layer)
@@ -94,7 +94,7 @@ def calc_model_fim(model_name, norm_method, model, input_img, layers, layer_name
        
         if show_plot: 
             # plot the eigendistortions
-            ax.plot(eigval, '.', label=f'layer {l}: {layer_names[l]}')
+            ax.plot(eigval, '.', label=f'layer {idx}: {l}')
             model_name = '3 layer LeNet' if model_name[:7]=='convnet' else model_name
             ax.set(title=f'Eigenvalues for {model_name}, nm={norm_method}', xlabel='Eigenvector index', ylabel='Eigenvalue')
             ax.legend()
@@ -110,11 +110,11 @@ def calc_model_fim(model_name, norm_method, model, input_img, layers, layer_name
         # ev_sum = torch.sum(eigval)
         # print(f'sum of the eigenvalues is {ev_sum}')
 
-        metrics_per_layer['logdet'] = ev_logdet
-        metrics_per_layer['sum'] = ev_sum
-        metrics_per_layer['max'] = max_eigval
-        metrics_per_layer['pr'] = pr
-        metrics_per_layer['npr'] = npr
+        metrics_per_layer['logdet'] = ev_logdet.item()
+        metrics_per_layer['sum'] = ev_sum.item()
+        metrics_per_layer['max'] = max_eigval.item()
+        metrics_per_layer['pr'] = pr.item()
+        metrics_per_layer['npr'] = npr.item()
 
 
         metrics[l] = metrics_per_layer
@@ -138,7 +138,7 @@ lenet_parameters = {
     'lr' : 0.01,
     'wd' : 0.005,
     'layers' : [0,1,2,3,4,5,6],
-    'layer_names': ['conv1', 'nm1', 'relu1', 'conv2', 'nm2', 'relu2', 'fc1']
+    'layer_names': ['1.conv1', '2.norm', '3.relu', '4.conv2', '5.norm', '6.relu', '7.linear']
 }
 
 parameters = lenet_parameters
@@ -187,21 +187,23 @@ pickle.dump(metrics_per_img, open(metric_save_name,'wb'))
 
 #%% get metrics for many images, one norm method
 norm_method = 'nn'
-def get_metrics_per_nm(model_name, norm_method, dataset, layers, layer_names):
+def get_metrics_per_nm(num_images, model_name, norm_method, dataset, layer_names):
     metrics = {}
     eigvals = {}
     eigvecs = {}
-    for img_idx in range(6):
-        input_img = select_input_img(dataset, img_idx)
+    for img_idx in range(num_images):
         model = load_model(model_name, norm_method)
         model_with_weights = load_model_weights(model, norm_method)
-        metrics_per_img, eigvals_per_img, eigvecs_per_img = calc_model_fim(model_name, norm_method, model_with_weights, input_img, layers, layer_names, show_plot=False)
+
+        input_img = select_input_img(dataset, img_idx)
+        metrics_per_img, eigvals_per_img, eigvecs_per_img = calc_model_fim(model_name, norm_method, model_with_weights, input_img, layer_names, show_plot=False)
+        
         metrics[img_idx] = metrics_per_img
         eigvals[img_idx] = eigvals_per_img
         eigvecs[img_idx] = eigvecs_per_img
     return (metrics, eigvals, eigvecs)
 
-metrics_per_nm = get_metrics_per_nm(model_name, norm_method, dataset, layers, layer_names)
+metrics_per_nm = get_metrics_per_nm(6, model_name, norm_method, dataset, layer_names)
 (metrics, eigvals, eigvecs) = metrics_per_nm
 
 # save the metrics

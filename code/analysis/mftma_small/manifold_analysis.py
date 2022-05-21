@@ -40,6 +40,9 @@ def manifold_analysis(XtotT, kappa, n_t, t_vecs=None):
     Xtot0 = [XtotT[i] - X_origin for i in range(num_manifolds)]
     # Compute the mean for each manifold
     means = [np.mean(Xtot0[i], axis=1, keepdims=True) for i in range(num_manifolds)]
+    # Extract the norm of the centroids
+    centroid_norms = np.array([np.linalg.norm(means[i]) for i in range(num_manifolds)])
+    
     # Normalize the center for each manifold
     XtotInput = [(Xtot0[i] - means[i])/np.linalg.norm(means[i]) for i in range(num_manifolds)]
 
@@ -69,7 +72,7 @@ def manifold_analysis(XtotT, kappa, n_t, t_vecs=None):
         a_Mfull_vec[i] = a_Mfull
         R_M_vec[i] = R_M
         D_M_vec[i] = D_M
-    return a_Mfull_vec, R_M_vec, D_M_vec
+    return a_Mfull_vec, R_M_vec, D_M_vec, centroid_norms
 
 
 def each_manifold_analysis_D1(sD1, kappa, n_t, eps=1e-8, t_vec=None):

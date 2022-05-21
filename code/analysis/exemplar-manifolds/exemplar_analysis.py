@@ -188,10 +188,6 @@ if generate_new_adv_dataset:
     ax[2].set(title=f'adv input (2nd)')
     plt.tight_layout()
 
-    # get adversarial accuracy
-    adv_accuracy = accuracy(classifier.predict(X_adv), Y)
-    print(f"Accuracy on adversarial test examples: {adv_accuracy * 100}")
-
     # save the perturbed image dataset
     data_to_save = {'X_adv': X_adv, 'X': X, 'Y': Y, 'img_idx': img_idx}
     save_dir = 'adversarial_dataset'
@@ -217,6 +213,10 @@ else:
     X = loaded_data['X']
     Y = loaded_data['Y']
     img_idx = loaded_data['img_idx']
+    
+# get adversarial accuracy
+adv_accuracy = accuracy(classifier.predict(X_adv), Y)
+print(f"Accuracy on adversarial test examples: {adv_accuracy * 100}")
     
 Y_adv = np.argmax(Y, axis=1)
 Y_adv = Y_adv[[i*M for i in range(len(img_idx))]]

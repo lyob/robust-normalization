@@ -134,7 +134,9 @@ class NthLayer(torch.nn.Module):
                     [model.conv_2] + 
                     [nm2[norm_method]] + 
                     [model.relu] + 
-                    [nn.MaxPool2d(2, 2), nn.Flatten(1), model.fc_1]
+                    [model.maxpool2d] +
+                    # [nn.MaxPool2d(2, 2)] +
+                    [nn.Flatten(1), model.fc_1]
                 )
             else:
                 # resnet

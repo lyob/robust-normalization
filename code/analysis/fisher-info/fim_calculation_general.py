@@ -68,7 +68,7 @@ def calc_metrics(eig_vals, inverse=False):
     return ev_logdet, ev_sum, pr, npr
 
 # calculate the FIM of the model wrt the input image, and return a measure of model sensitivity
-def calc_model_fim(model_name, norm_method, model, input_img, layer_names, show_plot=True):    
+def calc_model_fim(model_name, norm_method, model, input_img, layer_names, show_plot=False):    
     metrics = {}
     eigvecs = {}
     if show_plot:
@@ -138,7 +138,7 @@ lenet_parameters = {
     'lr' : 0.01,
     'wd' : 0.005,
     'layers' : [0,1,2,3,4,5,6],
-    'layer_names': ['1.conv1', '2.norm', '3.relu', '4.conv2', '5.norm', '6.relu', '7.linear']
+    'layer_names': ['1.conv1', '2.norm', '3.relu', '4.conv2', '5.norm', '6.relu', '7.maxpool', '8.linear']
 }
 
 parameters = lenet_parameters
@@ -166,7 +166,7 @@ def get_metrics_per_image(model_name, norm_methods, input_img, layers, layer_nam
         print(f'norm method is {nm}\n')
         model = load_model(model_name, nm)
         model_with_weights = load_model_weights(model, nm)
-        metrics_per_nm, eigvals_per_nm, eigvecs_per_nm = calc_model_fim(model_name, nm, model_with_weights, input_img, layers, layer_names, show_plot=False)
+        metrics_per_nm, eigvals_per_nm, eigvecs_per_nm = calc_model_fim(model_name, nm, model_with_weights, input_img, layer_names, show_plot=False)
         metrics[nm] = metrics_per_nm
         eigvals[nm] = eigvals_per_nm
         eigvecs[nm] = eigvecs_per_nm
@@ -203,7 +203,9 @@ def get_metrics_per_nm(num_images, model_name, norm_method, dataset, layer_names
         eigvecs[img_idx] = eigvecs_per_img
     return (metrics, eigvals, eigvecs)
 
-metrics_per_nm = get_metrics_per_nm(6, model_name, norm_method, dataset, layer_names)
+
+num_images = 50
+metrics_per_nm = get_metrics_per_nm(num_images, model_name, norm_method, dataset, layer_names)
 (metrics, eigvals, eigvecs) = metrics_per_nm
 
 # save the metrics
@@ -211,7 +213,7 @@ model_save_name = 'lenet' if model_name[:7]=='convnet' else model_name
 metric_save_dir = os.path.join('.', 'analysis', 'fisher-info', 'saved-metrics', model_name)
 if not os.path.exists(metric_save_dir):
     os.makedirs(metric_save_dir, exist_ok=True)
-metric_save_name = os.path.join(metric_save_dir, f'per-img-metrics-seed={seed}-norm_method={norm_method}.pkl')
+metric_save_name = os.path.join(metric_save_dir, f'per-img-metrics-seed={seed}-norm_method={norm_method}-num_images={num_images}.pkl')
 pickle.dump(metrics_per_nm, open(metric_save_name, 'wb'))
 
 

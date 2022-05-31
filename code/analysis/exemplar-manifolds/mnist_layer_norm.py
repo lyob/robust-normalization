@@ -154,8 +154,10 @@ class Net_both(nn.Module):
         self.out_channels = int(20*self.width_scale)
         self.conv_1 = conv_1
         self.conv_2 = nn.Conv2d(in_channels=in_channels, out_channels=self.out_channels, kernel_size=5, stride=1)
+        self.maxpool2d = nn.MaxPool2d(2, 2)
         self.fc_1 = nn.Linear(in_features=int(fc_neurons*self.width_scale), out_features=10)
-        self.relu = nn.ReLU()
+        self.relu1 = nn.ReLU()
+        self.relu2 = nn.ReLU()
 
         self.bn1 = nn.BatchNorm2d(in_channels)
         self.bn2 = nn.BatchNorm2d(self.out_channels)
@@ -183,13 +185,14 @@ class Net_both(nn.Module):
         # first layer
         x = self.conv_1(x)
         x = self.norm_dict1[self.normalize](x)
-        x = self.relu(x)
+        x = self.relu1(x)
         
         # second layer
         x = self.conv_2(x)
         x = self.norm_dict2[self.normalize](x)
-        x = self.relu(x)
-        x = F.max_pool2d(x, 2, 2)
+        x = self.relu2(x)
+        # x = F.max_pool2d(x, 2, 2)
+        x = self.maxpool2d(x)
         x = torch.flatten(x, 1)
 
         # third layer
@@ -219,6 +222,7 @@ class Net_1(nn.Module):
                            'lrnc': self.lrn_channel, 'lrnb': self.lrn_both}
         self.norm_dict2 = {'nn': nn.Identity()}
         self.normalize = normalize
+        self.maxpool2d = nn.MaxPool2d(2, 2)
 
     def forward(self, x):
         # first layer
@@ -230,7 +234,8 @@ class Net_1(nn.Module):
         x = self.conv_2(x)
         x = self.norm_dict2['nn'](x)
         x = self.relu(x)
-        x = F.max_pool2d(x, 2, 2)
+        # x = F.max_pool2d(x, 2, 2)
+        x = self.maxpool2d(x)
         x = torch.flatten(x, 1)
 
         # third layer
@@ -260,6 +265,7 @@ class Net_2(nn.Module):
                            'in': self.in2, 'gn': self.gn2, 'lrns': self.lrn_spatial,
                            'lrnc': self.lrn_channel, 'lrnb': self.lrn_both}
         self.normalize = normalize
+        self.maxpool2d = nn.MaxPool2d(2, 2)
 
     def forward(self, x):
         # first layer
@@ -271,7 +277,8 @@ class Net_2(nn.Module):
         x = self.conv_2(x)
         x = self.norm_dict2[self.normalize](x)
         x = self.relu(x)
-        x = F.max_pool2d(x, 2, 2)
+        # x = F.max_pool2d(x, 2, 2)
+        x = self.maxpool2d(x)
         x = torch.flatten(x, 1)
 
         # third layer

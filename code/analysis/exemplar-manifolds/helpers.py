@@ -334,11 +334,12 @@ def model_layer_map(name, model, norm='nn'):
         return {
             '1.conv1'  : model.conv_1,
             '2.norm'   : norms[norm]['2.norm'],
-            '3.relu'   : model.relu,
+            '3.relu'   : model.relu1,
             '4.conv2'  : model.conv_2,
             '5.norm'   : norms[norm]['5.norm'],
-            '6.relu'   : model.relu,
-            '7.linear' : model.fc_1
+            '6.relu'   : model.relu2,
+            '7.maxpool': model.maxpool2d,
+            '8.linear' : model.fc_1
         }
 
 def MFTMA_analyze_activations(features_dict, img_idx, P, M, N, kappa=0, NT=2000, SIMCAP=False, seed=0, labels=None, verbose=True, seeded=False):

@@ -271,11 +271,12 @@ print(df.head(3))
 #%% save the results
 # store the results
 results_dir = 'results'
+analysis_run_number = 1
 if len(img_idx) < 10:
-    file_name = f'model={model_name}-manifold={manifold_type}-norm={normalize}-eps={eps}-iter={max_iter}-random={random}-seed={seed}-num_manifolds={P}-img_idx={img_idx}-NT={NT}-seeded={seeded_analysis}.csv'
+    file_name = f'model={model_name}-manifold={manifold_type}-norm={normalize}-eps={eps}-iter={max_iter}-random={random}-seeded={seeded_analysis}-seed_analysis={seed}-num_manifolds={P}-img_idx={img_idx}-NT={NT}-run_number={analysis_run_number}.csv'
 else:
-    file_name = f'model={model_name}-manifold={manifold_type}-norm={normalize}-eps={eps}-iter={max_iter}-random={random}-seed={seed}-num_manifolds={P}-range={len(img_idx)}-NT={NT}-seeded={seeded_analysis}.csv'
-    
+    file_name = f'model={model_name}-manifold={manifold_type}-norm={normalize}-eps={eps}-iter={max_iter}-random={random}-seeded={seeded_analysis}-seed_analysis={seed}-num_manifolds={P}-range={len(img_idx)}-NT={NT}-run_number={analysis_run_number}.csv' 
+ 
 
 save_file = os.path.join(results_dir, model_name, file_name)
 print(save_file)

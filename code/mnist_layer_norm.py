@@ -156,7 +156,8 @@ class Net_both(nn.Module):
         self.conv_2 = nn.Conv2d(in_channels=in_channels, out_channels=self.out_channels, kernel_size=5, stride=1)
         self.maxpool2d = nn.MaxPool2d(2, 2)
         self.fc_1 = nn.Linear(in_features=int(fc_neurons*self.width_scale), out_features=10)
-        self.relu = nn.ReLU()
+        self.relu1 = nn.ReLU()
+        self.relu2 = nn.ReLU()
 
         self.bn1 = nn.BatchNorm2d(in_channels)
         self.bn2 = nn.BatchNorm2d(self.out_channels)
@@ -184,13 +185,12 @@ class Net_both(nn.Module):
         # first layer
         x = self.conv_1(x)
         x = self.norm_dict1[self.normalize](x)
-        x = self.relu(x)
+        x = self.relu1(x)
         
         # second layer
         x = self.conv_2(x)
         x = self.norm_dict2[self.normalize](x)
-        x = self.relu(x)
-        print('x size', x.size())
+        x = self.relu2(x)
         # x = F.max_pool2d(x, 2, 2)
         x = self.maxpool2d(x)
         x = torch.flatten(x, 1)

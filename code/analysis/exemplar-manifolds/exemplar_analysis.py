@@ -22,8 +22,8 @@ seed = 0
 
 ## manifolds analysis parameters
 manifold_type = 'exemplar' # 'class' for traditional label based manifolds, 'exemplar' for individual exemplar manifolds
-img_idx = list(range(50))
 img_idx = [0, 1, 2, 3]  # can be list of ints or False
+img_idx = list(range(50))
 P = len(img_idx) # number of manifolds, i.e. the number of images 
 M = 50 # number of examples per manifold, i.e. the number of images that lie in an epsilon ball around the image  
 N = 2000 # maximum number of features to use ??
@@ -271,7 +271,7 @@ print(df.head(3))
 #%% save the results
 # store the results
 results_dir = 'results'
-analysis_run_number = 1
+analysis_run_number = 2
 if len(img_idx) < 10:
     file_name = f'model={model_name}-manifold={manifold_type}-norm={normalize}-eps={eps}-iter={max_iter}-random={random}-seeded={seeded_analysis}-seed_analysis={seed}-num_manifolds={P}-img_idx={img_idx}-NT={NT}-run_number={analysis_run_number}.csv'
 else:

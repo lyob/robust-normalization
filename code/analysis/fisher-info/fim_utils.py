@@ -130,10 +130,10 @@ class NthLayer(torch.nn.Module):
                 features = (
                     [model.conv_1] +
                     [nm1[norm_method]] +
-                    [model.relu] +
+                    [model.relu1] +
                     [model.conv_2] + 
                     [nm2[norm_method]] + 
-                    [model.relu] + 
+                    [model.relu2] + 
                     [model.maxpool2d] +
                     # [nn.MaxPool2d(2, 2)] +
                     [nn.Flatten(1), model.fc_1]

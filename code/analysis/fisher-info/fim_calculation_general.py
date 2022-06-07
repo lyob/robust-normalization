@@ -137,7 +137,7 @@ lenet_parameters = {
     # 'norm_method' : ['nn'],
     'lr' : 0.01,
     'wd' : 0.005,
-    'layers' : [0,1,2,3,4,5,6],
+    'layers' : [0,1,2,3,4,5,6,7],
     'layer_names': ['1.conv1', '2.norm', '3.relu', '4.conv2', '5.norm', '6.relu', '7.maxpool', '8.linear']
 }
 
@@ -233,47 +233,47 @@ colorlist = {
 
 def plot_metrics(metric, title, sharey='all'):
     fig, ax = plt.subplots(len(layers), 1, figsize=(8,10), sharey=sharey, sharex='all')  # sharey = 'all' or 'none'
-    for nm in norm_method:
-        for idx, l in enumerate(layers):
+    for nm in norm_methods:
+        for idx, l in enumerate(layer_names):
             # layer l
-            barlist = ax[idx].bar(nm, metrics[nm][l][metric].numpy())
-            ax[idx].set(title=f'layer {l}: {layer_names[l]}')
+            barlist = ax[idx].bar(nm, metrics[nm][l][metric])
+            ax[idx].set(title=f'layer {idx}: {l}')
             barlist[0].set_color(colorlist[nm])
     fig.suptitle(title)
     fig.tight_layout()
     # fig.show()
 
 sharey='all'  # 'all' or 'none'
-plot_metrics('ev_sum', 'sum of eigenvalues', sharey)
-plot_metrics('max_ev', 'max eigenvalue', sharey)
-plot_metrics('ev_logdet', 'logdet of eigenvalues (largest 400 only)', sharey)
+plot_metrics('sum', 'sum of eigenvalues', sharey)
+plot_metrics('max', 'max eigenvalue', sharey)
+plot_metrics('logdet', 'logdet of eigenvalues (largest 400 only)', sharey)
 plot_metrics('pr', 'PR of eigenvalues', sharey)
 plot_metrics('npr', 'normalized PR of eigenvalues', sharey)
 
 # %% calculate the change in sensitivity, relative to no norm
 # load the saved metric
 metric_seed = 1
-metric_img_idx = 3
+metric_img_idx = 0
 
 metric_load_dir = os.path.join('.', 'analysis', 'fisher-info', 'saved-metrics', model_name)
-metric_load_file = f'metrics-seed={metric_seed}-img_num={metric_img_idx}.pkl'
+metric_load_file = f'per-nm-metrics-seed={metric_seed}-img_num={metric_img_idx}.pkl'
 file = open(os.path.join(metric_load_dir, metric_load_file), 'rb')
-metrics = loaded_metric = pickle.load(file)
+metrics = loaded_metric = pickle.load(file)[0]
 
 # calculate change in chosen metric, relative to no norm
 def calc_relative_metric_change(metric, model_name, suptitle, type='subtraction'):
     if model_name[:7] == 'convnet':
         delta_layer1 = {}
         delta_layer2 = {}
-        for nm in norm_method:
+        for nm in norm_methods:
             if type=='subtraction':
-                delta_layer1[nm] = loaded_metric[nm][1][metric] - loaded_metric[nm][0][metric]
-                delta_layer2[nm] = loaded_metric[nm][4][metric] - loaded_metric[nm][3][metric]
+                delta_layer1[nm] = loaded_metric[nm]['2.norm'][metric] - loaded_metric[nm]['1.conv1'][metric]
+                delta_layer2[nm] = loaded_metric[nm]['5.norm'][metric] - loaded_metric[nm]['4.conv2'][metric]
             elif type=='division':
-                delta_layer1[nm] = loaded_metric[nm][1][metric] / loaded_metric[nm][0][metric]
-                delta_layer2[nm] = loaded_metric[nm][4][metric] / loaded_metric[nm][3][metric]
+                delta_layer1[nm] = loaded_metric[nm]['2.norm'][metric] / loaded_metric[nm]['1.conv1'][metric]
+                delta_layer2[nm] = loaded_metric[nm]['5.norm'][metric] / loaded_metric[nm]['4.conv2'][metric]
         fig, ax = plt.subplots(1, 2, figsize=(10, 5))
-        for nm in norm_method:
+        for nm in norm_methods:
             barlist1 = ax[0].bar(nm, delta_layer1[nm])
             barlist2 = ax[1].bar(nm, delta_layer2[nm])
             barlist1[0].set_color(colorlist[nm])
@@ -285,24 +285,24 @@ def calc_relative_metric_change(metric, model_name, suptitle, type='subtraction'
         # fig.show()
 
 # comparisons = ['subtraction', 'division']
-comparisons = ['division']
+comparisons = ['subtraction']
 for c in comparisons:
-    calc_relative_metric_change('ev_sum', model_name, 'sum of eigenvalues', c)
-    calc_relative_metric_change('max_ev', model_name, 'maximum eigenvalue', c)
-    calc_relative_metric_change('ev_logdet', model_name, 'log determinant', c)
+    calc_relative_metric_change('sum', model_name, 'sum of eigenvalues', c)
+    calc_relative_metric_change('max', model_name, 'maximum eigenvalue', c)
+    calc_relative_metric_change('logdet', model_name, 'log determinant', c)
     calc_relative_metric_change('pr', model_name, 'pr', c)
     calc_relative_metric_change('npr', model_name, 'npr', c)
 
 
 # %% plot how the metrics change between layers
 selected_norm_method = 'nn'
-metric_labels = ['ev_sum', 'max_ev', 'ev_logdet', 'pr', 'npr']
+metric_labels = ['sum', 'max', 'logdet', 'pr', 'npr']
 
 def plot_metrics_layerwise(metrics, metric_labels, norm_method, layers, layer_names, title, sharey='all'):
     fig, ax = plt.subplots(len(metric_labels), 1, figsize=(8,10), sharex='all')  # sharey = 'all' or 'none'
     for idx, m in enumerate(metric_labels):
         # layer l
-        per_metric_data = [metrics[norm_method][l][m].item() for l in layers]
+        per_metric_data = [metrics[norm_method][l][m] for l in layer_names]
         print(per_metric_data)
         ax[idx].plot(layer_names, per_metric_data)
         ax[idx].set(title=f'{m}')

@@ -43,7 +43,7 @@ lenet.eval()
 x_train_input = np.swapaxes(x_train, 1, 3)
 x_test_input = np.swapaxes(x_test, 1, 3)
 
-# %% use plenoptic to calculate the FIM
+# %% calculate the FIM
 import warnings
 
 def jacobian(y: torch.Tensor, x: torch.Tensor):

@@ -20,7 +20,7 @@ print('the root directory is', os.path.abspath('.'))
 #%% import data from mftma and plot for one image
 # datafile parameters
 seeded = False
-NT = 100 # 2000
+NT = 2000 # 2000 or 100
 M = 50
 
 ma_data_dir = os.path.join('.', 'exemplar-manifolds', 'results', 'lenet')
